@@ -2,6 +2,8 @@
 
 namespace Netwerkstatt\FluentExIm\Helper;
 
+use InvalidArgumentException;
+use RuntimeException;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\Versioned\Versioned;
 use TractorCow\Fluent\Extension\FluentExtension;
@@ -23,7 +25,7 @@ class FluentImportHelper
     {
         $class = singleton($className);
         if (!$class->hasExtension(FluentExtension::class)) {
-            throw new \InvalidArgumentException('Class ' . $className . ' does not have FluentExtension');
+            throw new InvalidArgumentException('Class ' . $className . ' does not have FluentExtension');
         }
 
         $fieldsToTranslate = FluentHelper::getTranslatedFieldsForClass($className);
@@ -32,7 +34,7 @@ class FluentImportHelper
         /** @var ?Locale $localeObj */
         $localeObj = Locale::get()->filter('Locale', $locale)->first();
         if ($localeObj === null || !$localeObj->exists()) {
-            throw new \InvalidArgumentException('Locale ' . $locale . ' not found');
+            throw new InvalidArgumentException('Locale ' . $locale . ' not found');
         }
 
         $translated = [];
@@ -40,7 +42,7 @@ class FluentImportHelper
             /** @var ?DataObject $dataObject */
             $dataObject = DataObject::get($className)->byID($translation['ID']);
             if ($dataObject === null || !$dataObject->exists()) {
-                throw new \InvalidArgumentException('DataObject of class ' . $className . ' with ID ' . $translation['ID'] . ' not found');
+                throw new InvalidArgumentException('DataObject of class ' . $className . ' with ID ' . $translation['ID'] . ' not found');
             }
 
             FluentState::singleton()
@@ -55,7 +57,7 @@ class FluentImportHelper
                     $validationResult = $dataObject->validate();
                     if (!$validationResult->isValid()) {
                         $messages = implode(', ', array_map(static fn($message) => $message['message'], $validationResult->getMessages()));
-                        throw new \RuntimeException('Validation failed for ' . $dataObject->ClassName . ' with ID ' . $dataObject->ID . ': ' . $messages);
+                        throw new RuntimeException('Validation failed for ' . $dataObject->ClassName . ' with ID ' . $dataObject->ID . ': ' . $messages);
                     }
 
                     $dataObject->write();
@@ -74,13 +76,13 @@ class FluentImportHelper
     public static function validateLocaleTranslationData(array $translationData): bool
     {
         if (self::$locale === '') {
-            throw new \RuntimeException('Locale must be set before importing translations');
+            throw new RuntimeException('Locale must be set before importing translations');
         }
 
         foreach (array_keys($translationData) as $locale) {
             //check if locale exists and is locale of current object
             if ($locale !== self::$locale) {
-                throw new \RuntimeException(sprintf('Locale %s in file does not match import locale %s', $locale, self::$locale));
+                throw new RuntimeException(sprintf('Locale %s in file does not match import locale %s', $locale, self::$locale));
             }
         }
 

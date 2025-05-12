@@ -2,8 +2,8 @@
 
 namespace Netwerkstatt\FluentExIm\Control;
 
+use SilverStripe\Model\List\ArrayList;
 use Netwerkstatt\FluentExIm\Extension\AutoTranslate;
-use SilverStripe\Admin\LeftAndMain;
 use SilverStripe\Control\Controller;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Forms\CheckboxField;
@@ -12,7 +12,6 @@ use SilverStripe\Forms\Form;
 use SilverStripe\Forms\FormAction;
 use SilverStripe\Forms\HiddenField;
 use SilverStripe\Forms\LiteralField;
-use SilverStripe\ORM\ArrayList;
 use SilverStripe\View\Requirements;
 use SilverStripe\View\SSViewer;
 use TractorCow\Fluent\Model\Locale;

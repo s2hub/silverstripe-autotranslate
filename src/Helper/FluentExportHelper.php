@@ -2,6 +2,8 @@
 
 namespace Netwerkstatt\FluentExIm\Helper;
 
+use RuntimeException;
+use ZipArchive;
 use Symfony\Component\Yaml\Yaml;
 
 class FluentExportHelper
@@ -48,7 +50,7 @@ class FluentExportHelper
 
         $dir = TEMP_PATH . '/fluent-ex-im/';
         if (!file_exists($dir) && (!mkdir($dir, 0777, true) && !is_dir($dir))) {
-            throw new \RuntimeException(sprintf('Directory "%s" was not created', $dir));
+            throw new RuntimeException(sprintf('Directory "%s" was not created', $dir));
         }
 
         $filename = $dir . $className . '_' . $locale . '.yml';
@@ -86,9 +88,9 @@ class FluentExportHelper
         $filename = sprintf('fluent-export-%s-%s.zip', $locale, date('Y-m-d-H-i-s'));
         $zipFilename = TEMP_PATH . '/fluent-ex-im/' . $filename;
 
-        $zip = new \ZipArchive();
+        $zip = new ZipArchive();
 
-        $zip->open($zipFilename, \ZipArchive::CREATE);
+        $zip->open($zipFilename, ZipArchive::CREATE);
         foreach ($filenames as $key => $filename) {
             $zip->addFile($filename, basename((string)$filename));
         }

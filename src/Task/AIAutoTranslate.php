@@ -2,7 +2,9 @@
 
 namespace Netwerkstatt\FluentExIm\Task;
 
-use Bramus\Monolog\Formatter\ColoredLineFormatter;
+use RuntimeException;
+use InvalidArgumentException;
+use Exception;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\FilterHandler;
 use Monolog\Handler\StreamHandler;
@@ -74,11 +76,11 @@ class AIAutoTranslate extends BuildTask
         }
 
         if ($currentLocale !== $defaultLocale) {
-            throw new \RuntimeException('Please run this task in default locale');
+            throw new RuntimeException('Please run this task in default locale');
         }
 
         if ($request->getVar('do_publish') === null) {
-            throw new \InvalidArgumentException('Please provide do_publish parameter. 1 will publish all translated objects, 0 will only write to stage');
+            throw new InvalidArgumentException('Please provide do_publish parameter. 1 will publish all translated objects, 0 will only write to stage');
         }
 
         $doPublish = (bool) $request->getVar('do_publish');
@@ -126,7 +128,7 @@ class AIAutoTranslate extends BuildTask
 
     /**
      * Taken from \SilverStripe\Dev\Tasks\MigrateFileTask
-     * @throws \Exception
+     * @throws Exception
      */
     protected function addLogHandlers()
     {
