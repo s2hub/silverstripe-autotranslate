@@ -98,6 +98,23 @@ Notice: the task can only publish translated content, if you use `FluentVersione
 * `do_publish` (required): If set to 1, the task will publish the translated content.
 * `force_translation` (optional): If set to 1, the task will translate all content that is untranslated or marked as previoulsy auto translated, even if it was already translated.
 
+## Troubleshooting / FAQ
+###  [Emergency] Uncaught RuntimeException: My\Namespace\HomePage does not have IsAutoTranslated as translatable field
+
+It seems, your `SiteTree` (or the main class where you applied the AutoTranslate extension) has defined the `translate` fields manually. While the above config works in many cases, you need to define the translated fields required by this extension manually:
+
+```yml
+# SiteTree has already fluent applied
+SilverStripe\CMS\Model\SiteTree:
+  extensions:
+    autotranslate: Netwerkstatt\FluentExIm\Extension\AutoTranslate
+    translate:
+        - IsAutoTranslated
+        - LastTranslation
+```
+This should fix the issues.
+
+
 ## Todo
 ### File Import/Export
 - [X] ~~Export translations to YML~~
