@@ -2,6 +2,9 @@
 
 namespace Netwerkstatt\FluentExIm\Translator;
 
+use OpenAI;
+use Exception;
+use RuntimeException;
 use OpenAI\Client;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Extensible;
@@ -27,21 +30,21 @@ class ChatGPTTranslator implements Translatable
 
     public function __construct(string $apiKey)
     {
-        $this->client = \OpenAI::client($apiKey);
+        $this->client = OpenAI::client($apiKey);
     }
 
     /**
      * Retrieves available models from the OpenAI API.
      *
      * @return array
-     * @throws \RuntimeException
+     * @throws RuntimeException
      */
     public function getModels(): array
     {
         try {
             return $this->client->models()->list()->toArray();
-        } catch (\Exception $exception) {
-            throw new \RuntimeException('Error retrieving models: ' . $exception->getMessage(), $exception->getCode(), $exception);
+        } catch (Exception $exception) {
+            throw new RuntimeException('Error retrieving models: ' . $exception->getMessage(), $exception->getCode(), $exception);
         }
     }
 
@@ -51,7 +54,7 @@ class ChatGPTTranslator implements Translatable
      * @param string $text The text to translate.
      * @param string $targetLocale The target locale/language code.
      * @return string Translated text.
-     * @throws \RuntimeException
+     * @throws RuntimeException
      */
     public function translate(string $text, string $targetLocale): string
     {
@@ -75,9 +78,9 @@ class ChatGPTTranslator implements Translatable
                 return $response->choices[0]->message->content;
             }
 
-            throw new \RuntimeException('Invalid response structure from API');
-        } catch (\Exception $exception) {
-            throw new \RuntimeException('Translation failed: ' . $exception->getMessage(), $exception->getCode(), $exception);
+            throw new RuntimeException('Invalid response structure from API');
+        } catch (Exception $exception) {
+            throw new RuntimeException('Translation failed: ' . $exception->getMessage(), $exception->getCode(), $exception);
         }
     }
 

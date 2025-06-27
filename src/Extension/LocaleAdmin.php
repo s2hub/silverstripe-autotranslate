@@ -2,6 +2,8 @@
 
 namespace Netwerkstatt\FluentExIm\Extension;
 
+use Exception;
+use ZipArchive;
 use Netwerkstatt\FluentExIm\Helper\FluentImportHelper;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Core\Extension;
@@ -107,14 +109,14 @@ class LocaleAdmin extends Extension
 
             try {
                 $count = $this->handleYmlFile($content, $data['Locale'], $shouldPublish);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $form->sessionMessage($e->getMessage(), 'bad');
                 return $this->getOwner()->redirectBack();
             }
         }
 
         if (str_ends_with((string) $file['name'], '.zip')) {
-            $zip = new \ZipArchive();
+            $zip = new ZipArchive();
             $res = $zip->open($file['tmp_name']);
             $errorMessages = [];
             if ($res === true) {
@@ -129,7 +131,7 @@ class LocaleAdmin extends Extension
 
                     try {
                         $count += $this->handleYmlFile($content, $data['Locale'], $shouldPublish);
-                    } catch (\Exception $e) {
+                    } catch (Exception $e) {
                         $errorMessages[$filename] = $e->getMessage();
                     }
                 }

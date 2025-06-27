@@ -2,12 +2,12 @@
 
 namespace Netwerkstatt\FluentExIm\Translator;
 
-use SilverStripe\ORM\ArrayList;
+use SilverStripe\Model\ModelData;
+use SilverStripe\Model\List\ArrayList;
+use SilverStripe\Model\ArrayData;
 use SilverStripe\ORM\DataObject;
-use SilverStripe\View\ArrayData;
-use SilverStripe\View\ViewableData;
 
-class AITranslationStatus extends ViewableData
+class AITranslationStatus extends ModelData
 {
     public const STATUS_NOTHINGTOTRANSLATE = 'Nothing to translate';
 

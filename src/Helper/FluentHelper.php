@@ -2,6 +2,7 @@
 
 namespace Netwerkstatt\FluentExIm\Helper;
 
+use InvalidArgumentException;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\ORM\DataObject;
@@ -20,7 +21,7 @@ class FluentHelper
     {
         $class = singleton($className);
         if (!$class->hasExtension(FluentExtension::class)) {
-            throw new \InvalidArgumentException('Class ' . $className . ' does not have FluentExtension');
+            throw new InvalidArgumentException('Class ' . $className . ' does not have FluentExtension');
         }
 
         $fields = $class->getLocalisedTables();

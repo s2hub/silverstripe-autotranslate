@@ -6,10 +6,14 @@ use Netwerkstatt\FluentExIm\Helper\FluentExportHelper;
 use SilverStripe\Control\Director;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\ORM\DB;
+use SilverStripe\PolyExecution\PolyOutput;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
 use TractorCow\Fluent\Model\Locale;
 
 class FluentExport extends BuildTask
 {
+    protected static string $commandName = 'FluentExport';
     /**
      * @config
      */
@@ -26,38 +30,41 @@ class FluentExport extends BuildTask
     /**
      * @config
      */
-    protected $title = 'Fluent Export to YML';
+    protected string $title = 'Fluent Export to YML';
 
     /**
      * @config
      */
-    protected $description = 'Export all classes with FluentExtension to yml files';
+    protected static string $description = 'Export all classes with FluentExtension to yml files';
 
 
     /**
      * @inheritDoc
      */
-    public function run($request): void
+    protected function execute(InputInterface $input, PolyOutput $output): int
     {
         $locale = Locale::getDefault()->Locale;
 
         $filenames = FluentExportHelper::exportAllFluentClasses($locale);
 
         if ($filenames == []) {
-            DB::alteration_message('No classes with FluentExtension found');
-            return;
+            $output->writeln('<error>No classes with FluentExtension found</error>');
+            return 0;
         }
 
         $zipFilename = FluentExportHelper::generateZipArchive($filenames, $locale);
 
         if (Director::is_cli()) {
-            echo 'Exported ' . count($filenames) . ' classes to yml files:' . PHP_EOL;
+            $output->writeln('');
+            $output->writeln('<info>Exported ' . count($filenames) . ' classes to yml files:</info>');
+            $output->startList();
             foreach ($filenames as $key => $filename) {
-                echo $filename . PHP_EOL;
+                $output->writeListItem($filename );
             }
+            $output->stopList();
 
-            echo 'Zip file created: ' . $zipFilename . PHP_EOL;
-            return;
+            $output->writeln('<info>Zip file created in: </info><comment>' . $zipFilename . '</comment>');
+            return Command::SUCCESS;
         }
 
         ob_clean();
@@ -65,5 +72,6 @@ class FluentExport extends BuildTask
         header('Content-Disposition: attachment; filename="' . basename($zipFilename) . '"');
         header('Content-Length: ' . filesize($zipFilename));
         readfile($zipFilename);
+        return Command::SUCCESS;
     }
 }

@@ -2,6 +2,9 @@
 
 namespace Netwerkstatt\FluentExIm\Extension;
 
+use SilverStripe\Core\Extension;
+use RuntimeException;
+use JsonException;
 use LeKoala\CmsActions\SilverStripeIcons;
 use LeKoala\PureModal\PureModal;
 use Netwerkstatt\FluentExIm\Helper\FluentHelper;
@@ -12,7 +15,6 @@ use SilverStripe\Control\Controller;
 use SilverStripe\Core\Environment;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\FieldList;
-use SilverStripe\ORM\DataExtension;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\Versioned\Versioned;
@@ -21,7 +23,7 @@ use TractorCow\Fluent\Extension\FluentVersionedExtension;
 use TractorCow\Fluent\Model\Locale;
 use TractorCow\Fluent\State\FluentState;
 
-class AutoTranslate extends DataExtension
+class AutoTranslate extends Extension
 {
     /**
      * @config
@@ -128,7 +130,7 @@ class AutoTranslate extends DataExtension
      * @param $data
      * @param $form
      * @return AITranslationStatus[]
-     * @throws \JsonException
+     * @throws JsonException
      */
     public function doRecursiveAutoTranslate($data, $form): array
     {
@@ -151,15 +153,14 @@ class AutoTranslate extends DataExtension
 
 
     /**
-     * @throws \RuntimeException
-     * @throws \JsonException
+     * @throws RuntimeException
+     * @throws JsonException
      * @todo: currently only chatgpt is supported, make it more generic
-     *
      */
     public function autoTranslate(bool $doPublish = false, bool $forceTranslation = false): AITranslationStatus
     {
         $this->checkIfAutoTranslateFieldsAreTranslatable();
-        $status = \Netwerkstatt\FluentExIm\Translator\AITranslationStatus::create($this->getOwner());
+        $status = AITranslationStatus::create($this->getOwner());
 
         /** @var DataObject $owner */
         $owner = $this->getOwner();
@@ -229,12 +230,12 @@ class AutoTranslate extends DataExtension
     /**
      * Check if the required fields are configured as translated fields
      * @return void
-     * @throws \RuntimeException
+     * @throws RuntimeException
      */
     public function checkIfAutoTranslateFieldsAreTranslatable()
     {
         if (!$this->getOwner()->hasExtension(FluentExtension::class)) {
-            throw new \RuntimeException($this->getOwner()->ClassName . ' does not have FluentExtension');
+            throw new RuntimeException($this->getOwner()->ClassName . ' does not have FluentExtension');
         }
 
         foreach (['IsAutoTranslated', 'LastTranslation'] as $field) {
@@ -246,7 +247,7 @@ class AutoTranslate extends DataExtension
             }
 
             if (!$isLocalised) {
-                throw new \RuntimeException($this->getOwner()->ClassName . ' does not have ' . $field . ' as translatable field');
+                throw new RuntimeException($this->getOwner()->ClassName . ' does not have ' . $field . ' as translatable field');
             }
         }
     }
@@ -335,7 +336,7 @@ class AutoTranslate extends DataExtension
 
     public static function getTranslator(): Translatable
     {
-        if (!self::$translator instanceof \Netwerkstatt\FluentExIm\Translator\Translatable) {
+        if (!self::$translator instanceof Translatable) {
             self::$translator = self::getDefaultTranslator();
         }
 
@@ -350,7 +351,7 @@ class AutoTranslate extends DataExtension
     /**
      * Fallback if no translator is set. Use ChatGPT for now
      *
-     * @throws \RuntimeException
+     * @throws RuntimeException
      * @return Translatable
      */
     public static function getDefaultTranslator(): Translatable
@@ -358,10 +359,10 @@ class AutoTranslate extends DataExtension
         //@todo use dependency injection later
         $apiKey = Environment::getEnv('CHATGPT_API_KEY');
         if (!$apiKey) {
-            throw new \RuntimeException('No API Key found');
+            throw new RuntimeException('No API Key found');
         }
 
-        self::$translator = \Netwerkstatt\FluentExIm\Translator\ChatGPTTranslator::create($apiKey);
+        self::$translator = ChatGPTTranslator::create($apiKey);
         return self::$translator;
     }
 }
