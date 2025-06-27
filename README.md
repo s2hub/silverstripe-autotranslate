@@ -9,6 +9,32 @@ An extension for silvertripe/fluent
 composer require wernerkrauss/silverstripe-fluent-export-import
 ```
 
+### Silverstripe CMS Versions
+Version 2 of this module is for Silverstripe CMS 6
+
+Use Version 1 for Silverstripe 5
+
+### Silverstripe 6 requirements workaround
+
+Currently some required modules are not released as a new SS6 compatible version. If you encounter errors, that some modules are not available in the required Version, try this workaround in your _composer.json_:
+
+```json
+"repositories": [
+    {
+        "type": "git",
+        "url": "https://github.com/wernerkrauss/silverstripe-pure-modal.git"
+    },
+    {
+        "type": "git",
+        "url": "https://github.com/wernerkrauss/silverstripe-cms-actions.git"
+    }
+],
+"require": {
+    "lekoala/silverstripe-pure-modal": "dev-silverstripe6 as 2.0",
+    "lekoala/silverstripe-cms-actions": "dev-silverstripe6 as 2.0"
+},
+```
+
 ## Important notice
 I take no warranty for any data loss. Please backup your database before importing translations.
 
