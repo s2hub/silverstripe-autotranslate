@@ -113,6 +113,15 @@ public function updateGptCommand(&$command, $locale)
 }
 ```
 
+#### How to find available GPT models
+In ssshell you can run the following commands to find out, which models are currently available for your API key:
+
+```php
+$api_key = Environment::getEnv('CHATGPT_API_KEY');
+$gpt = new Netwerkstatt\FluentExIm\Translator\ChatGPTTranslator($api_key);
+$gpt->getModels();
+```
+
 ### fluent-ai-autotranslate task
 When everything is configured properly you can run the task `dev/tasks/fluent-ai-autotranslate do_publish=1` to translate all content to the desired locale.
 
