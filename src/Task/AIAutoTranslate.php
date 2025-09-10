@@ -86,6 +86,10 @@ class AIAutoTranslate extends BuildTask
             throw new InvalidArgumentException('Please provide do_publish parameter. 1 will publish all translated objects, 0 will only write to stage');
         }
 
+        $limit_locales = $input->hasOption('locales_to')
+            ? explode(';', $input->getOption('locales_to'))
+            : [];
+
         $doPublish = (bool)$input->getOption('do_publish');
         $forceTranslation = (bool)$input->getOption('force_translation');
 
@@ -108,7 +112,7 @@ class AIAutoTranslate extends BuildTask
                 ->withState(static fn(FluentState $state) => DataObject::get($fluentClassName));
             foreach ($translatableItems as $translatableItem) {
                 $translatableItem = $translatableItem->fixLastTranslationForDefaultLocale();
-                $status = $translatableItem->autoTranslate($doPublish, $forceTranslation);
+                $status = $translatableItem->autoTranslate($doPublish, $forceTranslation, $limit_locales);
                 $this->outputStatus($output, $status);
             }
             $output->stopList();
@@ -206,6 +210,12 @@ class AIAutoTranslate extends BuildTask
                 Locale::get()->column('Locale')
             ),
             new InputOption(
+                'locales_to',
+                't',
+                InputOption::VALUE_REQUIRED,
+                'limit locales to translate to; separate with semicolon, e.g.: "en_GB;es_ES"',
+            ),
+            new InputOption(
                 'do_publish',
                 'p',
                 InputOption::VALUE_REQUIRED,
@@ -218,7 +228,8 @@ class AIAutoTranslate extends BuildTask
                 null,
                 InputOption::VALUE_NONE,
                 'Should all texts be translated again, even if they\'re already translated?'
-            )
+            ),
+
         ];
     }
 }

@@ -123,15 +123,20 @@ $gpt->getModels();
 ```
 
 ### fluent-ai-autotranslate task
-When everything is configured properly you can run the task `dev/tasks/fluent-ai-autotranslate do_publish=1` to translate all content to the desired locale.
+When everything is configured properly you can run the task `sake tasks:FluentAIAutoTranslate --du_publish=1` to translate all content to the desired locale.
 
 If IsAutoTranslated of LastTranslation is missing in localised fields, the task will throw a RuntimeException.
 
 Notice: the task can only publish translated content, if you use `FluentVersionedExtension` instead of `FluentExtension` on the versioned DataObjects.
 
 #### Parameters:
-* `do_publish` (required): If set to 1, the task will publish the translated content.
+* `do_publish` (required, shortcut: `p`): If set to 1, the task will publish the translated content.
 * `force_translation` (optional): If set to 1, the task will translate all content that is untranslated or marked as previoulsy auto translated, even if it was already translated.
+* `locale_from` (optonal, shortcut: `l`): set the source locale for translations
+* `locales_to` (optional, shortut: `t`): limit translations to  this locales; expects a semicolon separated list, e.g. `--locales_to="en_US;es_ES"`
+
+
+See `sake tasks:FluentAIAutoTranslate --help` for all available commands.
 
 ## Troubleshooting / FAQ
 ###  [Emergency] Uncaught RuntimeException: My\Namespace\HomePage does not have IsAutoTranslated as translatable field

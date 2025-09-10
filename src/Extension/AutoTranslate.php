@@ -158,7 +158,7 @@ class AutoTranslate extends Extension
      * @throws JsonException
      * @todo: currently only chatgpt is supported, make it more generic
      */
-    public function autoTranslate(bool $doPublish = false, bool $forceTranslation = false): AITranslationStatus
+    public function autoTranslate(bool $doPublish = false, bool $forceTranslation = false, array $limit_locales = []): AITranslationStatus
     {
         $this->checkIfAutoTranslateFieldsAreTranslatable();
         $status = AITranslationStatus::create($this->getOwner());
@@ -178,7 +178,11 @@ class AutoTranslate extends Extension
 
         $translator = self::getTranslator();
 
-        foreach (Locale::get()->exclude(['Locale' => Locale::getDefault()->Locale]) as $locale) {
+        $locales = Locale::get()->exclude(['Locale' => Locale::getDefault()->Locale]);
+        if ($limit_locales !== []) {
+            $locales = $locales->filter(['Locale' => $limit_locales]);
+        }
+        foreach ($locales as $locale) {
             $status = FluentState::singleton()
                 ->withState(function (FluentState $state) use (
                     $locale,
