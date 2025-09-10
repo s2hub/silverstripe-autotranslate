@@ -2,8 +2,6 @@
 
 namespace Netwerkstatt\FluentExIm\Extension;
 
-use SilverStripe\Core\Extension;
-use RuntimeException;
 use JsonException;
 use LeKoala\CmsActions\SilverStripeIcons;
 use LeKoala\PureModal\PureModal;
@@ -11,8 +9,10 @@ use Netwerkstatt\FluentExIm\Helper\FluentHelper;
 use Netwerkstatt\FluentExIm\Translator\AITranslationStatus;
 use Netwerkstatt\FluentExIm\Translator\ChatGPTTranslator;
 use Netwerkstatt\FluentExIm\Translator\Translatable;
+use RuntimeException;
 use SilverStripe\Control\Controller;
 use SilverStripe\Core\Environment;
+use SilverStripe\Core\Extension;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\ORM\DataObject;
@@ -21,6 +21,7 @@ use SilverStripe\Versioned\Versioned;
 use TractorCow\Fluent\Extension\FluentExtension;
 use TractorCow\Fluent\Extension\FluentVersionedExtension;
 use TractorCow\Fluent\Model\Locale;
+use TractorCow\Fluent\Service\CopyToLocaleService;
 use TractorCow\Fluent\State\FluentState;
 
 class AutoTranslate extends Extension
@@ -132,7 +133,7 @@ class AutoTranslate extends Extension
      * @return AITranslationStatus[]
      * @throws JsonException
      */
-    public function doRecursiveAutoTranslate($data, $form): array
+    public function doRecursiveAutoTranslate(array $data, $form): array
     {
         $doPublish = $data['doPublish'] ?? false;
         $forceTranslation = $data['forceTranslation'] ?? false;
@@ -285,7 +286,7 @@ class AutoTranslate extends Extension
         $existsInLocale = $owner->existsInLocale($locale->Locale);
         //get translated dataobject
         /** @var DataObject $translatedObject */
-        $translatedObject = DataObject::get($owner->ClassName)->byID($owner->ID);
+        $translatedObject = $this->findOrCreateTranslatedObject($locale->Locale);
 
         //if translated do is newer than original, do not translate. It is already translated
         if ($existsInLocale && $translatedObject->LastTranslation > $owner->LastTranslation && !$forceTranslation) {
@@ -351,8 +352,8 @@ class AutoTranslate extends Extension
     /**
      * Fallback if no translator is set. Use ChatGPT for now
      *
-     * @throws RuntimeException
      * @return Translatable
+     * @throws RuntimeException
      */
     public static function getDefaultTranslator(): Translatable
     {
@@ -364,5 +365,39 @@ class AutoTranslate extends Extension
 
         self::$translator = ChatGPTTranslator::create($apiKey);
         return self::$translator;
+    }
+
+    /**
+     * @param object $owner
+     * @return DataObject|null
+     * @throws RuntimeException
+     */
+    private function findOrCreateTranslatedObject(string $locale): DataObject
+    {
+        $owner = $this->getOwner();
+        $obj = DataObject::get($owner->ClassName)->byID($owner->ID);
+
+        if ($obj) {
+            return $obj;
+        }
+        //no object, are we in live and stage exists?
+
+        //get from stage...
+        return Versioned::withVersionedMode(function () use ($owner, $locale) {
+            Versioned::set_reading_mode('Stage.' . Versioned::DRAFT);
+            $obj = DataObject::get($owner->ClassName)->byID($owner->ID);
+
+            if ($obj) {
+                return $obj;
+            }
+            //we need to translate the object...
+            CopyToLocaleService::singleton()->copyToLocale($owner->ClassName, $owner->ID, $owner->Locale, $locale);
+
+            $obj = DataObject::get($owner->ClassName)->byID($owner->ID);
+            if (!$obj) {
+                throw new RuntimeException('Unable to find ' . $owner->ClassName . ' #' . $owner->ID . ' in locale ' . $locale);
+            }
+            return $obj;
+        });
     }
 }

@@ -98,7 +98,7 @@ class AITranslateController extends Controller
         }
 
 //        Versioned::set_stage(Versioned::DRAFT);
-        $status = $object->doRecursiveAutoTranslate($doPublish, $forceTranslation);
+        $status = $object->doRecursiveAutoTranslate($data, $forceTranslation);
 
         $templates = SSViewer::get_templates_by_class(self::class, '_' . __FUNCTION__);
 
