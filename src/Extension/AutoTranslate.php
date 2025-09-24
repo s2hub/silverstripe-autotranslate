@@ -8,11 +8,13 @@ use LeKoala\PureModal\PureModal;
 use Netwerkstatt\FluentExIm\Helper\FluentHelper;
 use Netwerkstatt\FluentExIm\Translator\AITranslationStatus;
 use Netwerkstatt\FluentExIm\Translator\ChatGPTTranslator;
+use Netwerkstatt\FluentExIm\Translator\DeepLTranslator;
 use Netwerkstatt\FluentExIm\Translator\Translatable;
 use RuntimeException;
 use SilverStripe\Control\Controller;
 use SilverStripe\Core\Environment;
 use SilverStripe\Core\Extension;
+use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\ORM\DataObject;
@@ -304,7 +306,11 @@ class AutoTranslate extends Extension
             return $status;
         }
 
-        $translatedDataOrig = $translator->translate($json, $locale->Locale);
+        $translatedDataOrig = $translator->translate(
+            $json,
+            Locale::getDefault()->Locale,
+            $locale->Locale
+        );
         $translatedData = json_decode($translatedDataOrig, true);
 
         if (!$translatedData) {
@@ -362,12 +368,7 @@ class AutoTranslate extends Extension
     public static function getDefaultTranslator(): Translatable
     {
         //@todo use dependency injection later
-        $apiKey = Environment::getEnv('CHATGPT_API_KEY');
-        if (!$apiKey) {
-            throw new RuntimeException('No API Key found');
-        }
-
-        self::$translator = ChatGPTTranslator::create($apiKey);
+        self::$translator = Injector::inst()->get(Translatable::class);
         return self::$translator;
     }
 

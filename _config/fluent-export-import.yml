@@ -20,3 +20,16 @@ SilverStripe\MimeValidator\MimeUploadValidator:
 SilverStripe\Control\Director:
   rules:
     'aitranslate': Netwerkstatt\FluentExIm\Control\AITranslateController
+
+Netwerkstatt\FluentExIm\Translator\DeepLTranslator:
+  locale_map:
+    de_DE: DE
+    en_GB: EN-GB
+
+SilverStripe\Core\Injector\Injector:
+  Netwerkstatt\FluentExIm\Translator\Translatable:
+    # Selects a translation backend (must implement Translatable)
+    # Available Backends are:
+    # class: Netwerkstatt\FluentExIm\Translator\ChatGPTTranslator
+
+    class: Netwerkstatt\FluentExIm\Translator\DeepLTranslator
