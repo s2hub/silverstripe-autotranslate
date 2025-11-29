@@ -8,7 +8,6 @@ use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
 use \DeepL\DeepLClient;
-use SilverStripe\Core\Config\Config;
 
 class DeepLTranslator implements Translatable
 {
@@ -19,7 +18,8 @@ class DeepLTranslator implements Translatable
 
     private DeepLClient $client;
 
-    private static $locales = null;
+    private static $sourceLocales = null;
+    private static $targetLocales = null;
 
     public function __construct(string $apiKey = null)
     {
@@ -29,13 +29,13 @@ class DeepLTranslator implements Translatable
         
         $this->client = new DeepLClient($apiKey);
 
-        if(Self::$locales == null) {
-            Self::$locales = static::config()->get("locale_map");
+        if(Self::$sourceLocales == null) {
+            Self::$sourceLocales = static::config()->get("source_locales");
         }
-    }
 
-    protected function getDeepLLocale($slocale) {
-        return Self::$locales[$slocale];
+        if(Self::$targetLocales == null) {
+            Self::$targetLocales = static::config()->get("target_locales");
+        }
     }
 
     #[\Override]
@@ -44,8 +44,8 @@ class DeepLTranslator implements Translatable
         try {
             return $this->client->translateText(
                 $text,
-                $this->getDeepLLocale($sourceLocale),
-                $this->getDeepLLocale($targetLocale)
+                Self::$sourceLocales[$sourceLocale],
+                Self::$targetLocales[$targetLocale]
             );
         }
         catch (Exception $exception) {

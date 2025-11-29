@@ -6,10 +6,12 @@ use JsonException;
 use LeKoala\CmsActions\SilverStripeIcons;
 use LeKoala\PureModal\PureModal;
 use Netwerkstatt\FluentExIm\Helper\FluentHelper;
+use Netwerkstatt\FluentExIm\Translator\TranslatableFactory;
 use Netwerkstatt\FluentExIm\Translator\AITranslationStatus;
 use Netwerkstatt\FluentExIm\Translator\ChatGPTTranslator;
 use Netwerkstatt\FluentExIm\Translator\DeepLTranslator;
 use Netwerkstatt\FluentExIm\Translator\Translatable;
+use Netwerkstatt\FluentExIm\Translator\TranslatableFactory as TranslatorTranslatableFactory;
 use RuntimeException;
 use SilverStripe\Control\Controller;
 use SilverStripe\Core\Environment;
@@ -367,9 +369,7 @@ class AutoTranslate extends Extension
      */
     public static function getDefaultTranslator(): Translatable
     {
-        //@todo use dependency injection later
-        self::$translator = Injector::inst()->get(Translatable::class);
-        return self::$translator;
+        return TranslatableFactory::getInstance();
     }
 
     /**

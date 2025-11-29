@@ -21,15 +21,8 @@ SilverStripe\Control\Director:
   rules:
     'aitranslate': Netwerkstatt\FluentExIm\Control\AITranslateController
 
-Netwerkstatt\FluentExIm\Translator\DeepLTranslator:
-  locale_map:
-    de_DE: DE
-    en_GB: EN-GB
+Netwerkstatt\FluentExIm\Translator\TranslatableFactory:
+  # For available backends, see "translators.yml".
+  # This setting may be overwritten by FLUENT_TRANS_BACKEND env var.
 
-SilverStripe\Core\Injector\Injector:
-  Netwerkstatt\FluentExIm\Translator\Translatable:
-    # Selects a translation backend (must implement Translatable)
-    # Available Backends are:
-    # class: Netwerkstatt\FluentExIm\Translator\ChatGPTTranslator
-
-    class: Netwerkstatt\FluentExIm\Translator\DeepLTranslator
+  backend: DeepL
