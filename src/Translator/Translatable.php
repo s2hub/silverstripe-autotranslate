@@ -2,9 +2,6 @@
 
 namespace Netwerkstatt\FluentExIm\Translator;
 
-use RuntimeException;
-use SilverStripe\Core\Environment;
-
 interface Translatable
 {
     /**

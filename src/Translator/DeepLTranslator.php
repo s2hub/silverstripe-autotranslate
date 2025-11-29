@@ -23,18 +23,18 @@ class DeepLTranslator implements Translatable
 
     public function __construct(string $apiKey = null)
     {
-        if($apiKey == null) {
+        if ($apiKey === null) {
             $apiKey = $this->getAPIKey("DEEPL_API_KEY");
         }
         
         $this->client = new DeepLClient($apiKey);
 
-        if(Self::$sourceLocales == null) {
-            Self::$sourceLocales = static::config()->get("source_locales");
+        if (self::$sourceLocales === null) {
+            self::$sourceLocales = static::config()->get("source_locales");
         }
 
-        if(Self::$targetLocales == null) {
-            Self::$targetLocales = static::config()->get("target_locales");
+        if (self::$targetLocales === null) {
+            self::$targetLocales = static::config()->get("target_locales");
         }
     }
 
@@ -44,8 +44,8 @@ class DeepLTranslator implements Translatable
         try {
             return $this->client->translateText(
                 $text,
-                Self::$sourceLocales[$sourceLocale],
-                Self::$targetLocales[$targetLocale]
+                self::$sourceLocales[$sourceLocale],
+                self::$targetLocales[$targetLocale]
             );
         }
         catch (Exception $exception) {

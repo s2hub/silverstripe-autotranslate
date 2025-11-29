@@ -31,7 +31,7 @@ class ChatGPTTranslator implements Translatable
 
     public function __construct(string $apiKey = null)
     {
-        if($apiKey == null) {
+        if ($apiKey === null) {
             $apiKey = $this->getAPIKey("CHATGPT_API_KEY");
         }
         $this->client = OpenAI::client($apiKey);

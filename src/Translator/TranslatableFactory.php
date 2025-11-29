@@ -7,24 +7,24 @@ use SilverStripe\Core\Injector\Injector;
 
 class TranslatableFactory {
     use Configurable;
-    public static function getBackendName(): String {
+    public static function getBackendName(): string {
         $backendName = getenv("FLUENT_TRANS_BACKEND");
 
-        if($backendName === false || $backendName == null) {
+        if ($backendName === false || $backendName === null) {
             $backendName = static::config()->get("backend");
         }
 
         return $backendName;
     }
 
-    public static function getBackend(): String {
+    public static function getBackend(): string {
         return self::config()->get("translators")[self::getBackendName()];
     }
 
     public static function getInstance(): Translatable {
         $backend = self::getBackend();
 
-        if(!class_exists($backend)) {
+        if (!class_exists($backend)) {
             throw new \RuntimeException("Bad translation config.");
         }
 
