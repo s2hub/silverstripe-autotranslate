@@ -21,12 +21,12 @@ class DeepLTranslator implements Translatable
     private static $sourceLocales = null;
     private static $targetLocales = null;
 
-    public function __construct(string $apiKey = null)
+    public function __construct(string|null $apiKey = null)
     {
         if ($apiKey === null) {
             $apiKey = $this->getAPIKey("DEEPL_API_KEY");
         }
-        
+
         $this->client = new DeepLClient($apiKey);
 
         if (self::$sourceLocales === null) {

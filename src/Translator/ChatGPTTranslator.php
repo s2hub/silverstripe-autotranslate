@@ -29,7 +29,7 @@ class ChatGPTTranslator implements Translatable
 
     private Client $client;
 
-    public function __construct(string $apiKey = null)
+    public function __construct(string|null $apiKey = null)
     {
         if ($apiKey === null) {
             $apiKey = $this->getAPIKey("CHATGPT_API_KEY");

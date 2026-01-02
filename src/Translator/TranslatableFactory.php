@@ -3,12 +3,13 @@
 namespace Netwerkstatt\FluentExIm\Translator;
 
 use SilverStripe\Core\Config\Configurable;
+use SilverStripe\Core\Environment;
 use SilverStripe\Core\Injector\Injector;
 
 class TranslatableFactory {
     use Configurable;
     public static function getBackendName(): string {
-        $backendName = getenv("FLUENT_TRANS_BACKEND");
+        $backendName = Environment::getEnv("FLUENT_TRANS_BACKEND");
 
         if ($backendName === false || $backendName === null) {
             $backendName = static::config()->get("backend");

@@ -105,7 +105,7 @@ class AITranslateController extends Controller
         return $this->customise(['Status' => ArrayList::create($status)])->renderWith($templates);
     }
 
-    protected function renderDialog(array $customFields = null): string
+    protected function renderDialog(array|null $customFields = null): string
     {
         // Set empty content by default otherwise it will render the full page
         if (empty($customFields['Content'])) {
