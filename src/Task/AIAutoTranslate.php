@@ -86,7 +86,7 @@ class AIAutoTranslate extends BuildTask
             throw new InvalidArgumentException('Please provide do_publish parameter. 1 will publish all translated objects, 0 will only write to stage');
         }
 
-        $limit_locales = $input->hasOption('locales_to')
+        $limit_locales = ($input->hasOption('locales_to') && $input->getOption('locales_to') !== null)
             ? explode(';', $input->getOption('locales_to'))
             : [];
 
