@@ -42,11 +42,25 @@ class DeepLTranslator implements Translatable
     public function translate(string $text, string $sourceLocale, string $targetLocale): string
     {
         try {
-            return $this->client->translateText(
-                $text,
-                self::$sourceLocales[$sourceLocale],
-                self::$targetLocales[$targetLocale]
-            );
+            $usage = $this->client->getUsage();
+            if ($usage->anyLimitReached()) {
+                throw new RuntimeException('Translation failed: DeepL API character limit reached');
+            }
+            $json = json_decode($text, true);
+            foreach ($json as $key => $value) {
+                if (is_string($value)) {
+                    $json[$key] = $this->client->translateText(
+                        $value,
+                        self::$sourceLocales[$sourceLocale],
+                        self::$targetLocales[$targetLocale],
+                        [
+                            'tag_handling' => 'html',
+                            'tag_handling_version' => 'v2',
+                        ]
+                    )->text;
+                }
+            }
+            return json_encode($json);
         }
         catch (Exception $exception) {
             throw new RuntimeException('Translation failed: ' . $exception->getMessage(), $exception->getCode(), $exception);
