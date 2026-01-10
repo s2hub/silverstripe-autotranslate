@@ -327,7 +327,7 @@ class AutoTranslate extends Extension
         $translatedObject->update($translatedData);
         $translatedObject->IsAutoTranslated = true;
         $translatedObject->LastTranslation = DBDatetime::now()->getValue();
-        $translatedObject->write();
+        $translatedObject->write(false, false, false, false, true);
 
         $isPublishableObject = $translatedObject->hasExtension(Versioned::class) && $owner->hasExtension(FluentVersionedExtension::class);
         $ownerIsPublished = $isPublishableObject && $owner->isPublishedInLocale($owner->Locale);
