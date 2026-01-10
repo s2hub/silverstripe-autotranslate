@@ -107,6 +107,7 @@ class AutoTranslate extends Extension
             '/aitranslate/',
             '?ClassName=' . $this->getOwner()->ClassName,
             '?ID=' . $this->getOwner()->ID,
+            '?Locale=' . $this->getOwner()->Locale,
         ]);
 
         $translate = PureModal::create('doAutoTranslate', $buttonTitle, sprintf('<h1>%s</h1>', $buttonTitle));
