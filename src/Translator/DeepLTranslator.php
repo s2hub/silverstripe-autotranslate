@@ -20,6 +20,7 @@ class DeepLTranslator implements Translatable
 
     private static $sourceLocales = null;
     private static $targetLocales = null;
+    private static $glossaries = [];
 
     public function __construct(string|null $apiKey = null)
     {
@@ -36,6 +37,10 @@ class DeepLTranslator implements Translatable
         if (self::$targetLocales === null) {
             self::$targetLocales = static::config()->get("target_locales");
         }
+
+        if (self::$glossaries === []) {
+            self::$glossaries = static::config()->get("glossaries");
+        }
     }
 
     #[\Override]
@@ -48,15 +53,19 @@ class DeepLTranslator implements Translatable
             }
             $json = json_decode($text, true);
             foreach ($json as $key => $value) {
+                $options = [
+                    'tag_handling' => 'html',
+                    'tag_handling_version' => 'v2',
+                ];
+                if (self::$glossaries && array_key_exists(self::$targetLocales[$targetLocale], self::$glossaries)) {
+                    $options['glossary'] = self::$glossaries[self::$targetLocales[$targetLocale]];
+                }
                 if (is_string($value)) {
                     $json[$key] = $this->client->translateText(
                         $value,
                         self::$sourceLocales[$sourceLocale],
                         self::$targetLocales[$targetLocale],
-                        [
-                            'tag_handling' => 'html',
-                            'tag_handling_version' => 'v2',
-                        ]
+                        $options,
                     )->text;
                 }
             }
