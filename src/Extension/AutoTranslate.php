@@ -6,9 +6,9 @@ use JsonException;
 use LeKoala\CmsActions\SilverStripeIcons;
 use LeKoala\PureModal\PureModal;
 use Netwerkstatt\FluentExIm\Helper\FluentHelper;
-use Netwerkstatt\FluentExIm\Translator\TranslatableFactory;
 use Netwerkstatt\FluentExIm\Translator\AITranslationStatus;
 use Netwerkstatt\FluentExIm\Translator\Translatable;
+use Netwerkstatt\FluentExIm\Translator\TranslatableFactory;
 use RuntimeException;
 use SilverStripe\Control\Controller;
 use SilverStripe\Core\Extension;
@@ -158,8 +158,11 @@ class AutoTranslate extends Extension
      * @throws JsonException
      * @todo: currently only chatgpt is supported, make it more generic
      */
-    public function autoTranslate(bool $doPublish = false, bool $forceTranslation = false, array $limit_locales = []): AITranslationStatus
-    {
+    public function autoTranslate(
+        bool $doPublish = false,
+        bool $forceTranslation = false,
+        array $limit_locales = []
+    ): AITranslationStatus {
         $this->checkIfAutoTranslateFieldsAreTranslatable();
         $status = AITranslationStatus::create($this->getOwner());
 
@@ -182,6 +185,7 @@ class AutoTranslate extends Extension
         if ($limit_locales !== []) {
             $locales = $locales->filter(['Locale' => $limit_locales]);
         }
+
         foreach ($locales as $locale) {
             $status = FluentState::singleton()
                 ->withState(function (FluentState $state) use (
@@ -193,17 +197,26 @@ class AutoTranslate extends Extension
                     $forceTranslation
                 ) {
                     $state->setLocale($locale->Locale);
-                    return $this->performTranslation(
+                    return Versioned::withVersionedMode(function () use (
+                        $locale,
                         $translator,
                         $status,
-                        $locale,
                         $json,
                         $doPublish,
                         $forceTranslation
-                    );
+                    ) {
+                        Versioned::set_reading_mode('Stage.' . Versioned::DRAFT);
+                        return $this->performTranslation(
+                            $translator,
+                            $status,
+                            $locale,
+                            $json,
+                            $doPublish,
+                            $forceTranslation
+                        );
+                    });
                 });
         }
-
         return $status;
     }
 
