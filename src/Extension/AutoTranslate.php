@@ -2,6 +2,7 @@
 
 namespace Netwerkstatt\FluentExIm\Extension;
 
+use Exception;
 use JsonException;
 use LeKoala\CmsActions\SilverStripeIcons;
 use LeKoala\PureModal\PureModal;
@@ -301,9 +302,15 @@ class AutoTranslate extends Extension
     ): AITranslationStatus {
         $owner = $this->getOwner();
         $existsInLocale = $owner->existsInLocale($locale->Locale);
-        //get translated dataobject
-        /** @var DataObject $translatedObject */
-        $translatedObject = $this->findOrCreateTranslatedObject($locale->Locale);
+
+        try {
+            //get translated dataobject
+            /** @var DataObject $translatedObject */
+            $translatedObject = $this->findOrCreateTranslatedObject($locale->Locale);
+        } catch (Exception $e) {
+            $status->addLocale($locale->Locale, AITranslationStatus::STATUS_ERROR . ': ' . $e->getMessage());
+            return $status;
+        }
 
         //if translated do is newer than original, do not translate. It is already translated
         if ($existsInLocale && $translatedObject->LastTranslation > $owner->LastTranslation && !$forceTranslation) {
@@ -340,7 +347,13 @@ class AutoTranslate extends Extension
         $translatedObject->update($translatedData);
         $translatedObject->IsAutoTranslated = true;
         $translatedObject->LastTranslation = DBDatetime::now()->getValue();
-        $translatedObject->write(false, false, false, false, true);
+
+        try {
+            $translatedObject->write(false, false, false, false, true);
+        } catch (Exception $e) {
+            $status->addLocale($locale->Locale, AITranslationStatus::STATUS_ERROR . ': ' . $e->getMessage());
+            return $status;
+        }
 
         $isPublishableObject = $translatedObject->hasExtension(Versioned::class) && $owner->hasExtension(FluentVersionedExtension::class);
         $ownerIsPublished = $isPublishableObject && $owner->isPublishedInLocale($owner->Locale);
