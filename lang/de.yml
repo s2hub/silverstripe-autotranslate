@@ -1,0 +1,8 @@
+de:
+  Netwerkstatt\FluentExIm\Extension\AutoTranslate:
+    TARGET_LANGUAGES: 'Zielsprachen'
+    PUBLISH_AFTER: 'Nach Übersetzung veröffentlichen'
+    ONLY_NEW: 'Nur neue Inhalte übersetzen'
+    RECURSIVE: 'Unterseiten rekursiv übersetzen'
+    TRANSLATE_MODAL_TITLE: 'Automatisch übersetzen'
+    START_TRANSLATION: 'Übersetzung starten'

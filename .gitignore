@@ -15,3 +15,5 @@
 
 .idea
 /error.log
+/node_modules
+.vscode

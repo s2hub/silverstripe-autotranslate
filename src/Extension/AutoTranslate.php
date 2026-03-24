@@ -4,14 +4,13 @@ namespace Netwerkstatt\FluentExIm\Extension;
 
 use Exception;
 use JsonException;
-use LeKoala\CmsActions\SilverStripeIcons;
-use LeKoala\PureModal\PureModal;
+use Atwx\CmsPopup\Forms\CmsModalBatchAction;
+use Netwerkstatt\FluentExIm\Handler\AITranslateBatchHandler;
 use Netwerkstatt\FluentExIm\Helper\FluentHelper;
 use Netwerkstatt\FluentExIm\Translator\AITranslationStatus;
 use Netwerkstatt\FluentExIm\Translator\Translatable;
 use Netwerkstatt\FluentExIm\Translator\TranslatableFactory;
 use RuntimeException;
-use SilverStripe\Control\Controller;
 use SilverStripe\Core\Extension;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\FieldList;
@@ -43,6 +42,7 @@ class AutoTranslate extends Extension
         'LastTranslation',
     ];
 
+    /** @internal not a config property */
     private static ?Translatable $translator = null;
 
     public function canTranslate(): bool
@@ -85,37 +85,29 @@ class AutoTranslate extends Extension
             return;
         }
 
-        $translatableLocales = Locale::get()->exclude(['IsGlobalDefault' => 1]);
-        $localesCount = $translatableLocales->count();
-        $localesString = implode(', ', $translatableLocales->column('Title'));
-        $translateconfirmation = _t(
-            self::class . '.TRANSLATE_CONFIRMATION',
-            'Translate to 1 other locale ({locales})?|Translate to {count} other locales ({locales})?',
-            ['count' => $localesCount, 'locales' => $localesString]
-        );
-
-
         $buttonTitle = _t(
             self::class . '.TRANSLATE_MODAL_TITLE',
             'Auto Translate'
         );
-        $modalTitle = _t(
-            self::class . '.TRANSLATE_MODAL_TITLE',
-            'Import {locale} ({localeCode})Translations',
-            ['locale' => $this->getOwner()->Title, 'localeCode' => $this->getOwner()->Locale]
-        );
-        $url = Controller::join_links([
-            '/aitranslate/',
-            '?ClassName=' . $this->getOwner()->ClassName,
-            '?ID=' . $this->getOwner()->ID,
-            '?Locale=' . $this->getOwner()->Locale,
-        ]);
 
-        $translate = PureModal::create('doAutoTranslate', $buttonTitle, sprintf('<h1>%s</h1>', $buttonTitle));
-        $translate->setIframe($url);
-        $translate->setButtonIcon(SilverStripeIcons::ICON_TRANSLATABLE);
+        $owner = $this->getOwner();
+        $translateAction = CmsModalBatchAction::forHandler(
+            AITranslateBatchHandler::class,
+            ['ClassName' => $owner->ClassName, 'ID' => $owner->ID],
+            $buttonTitle
+        )
+            ->setModalTitle($buttonTitle . ': ' . $owner->getTitle())
+            ->setButtonIcon('font-icon-translatable')
+            ->setSubmitLabel(_t(self::class . '.START_TRANSLATION', 'Start Translation'))
+            ->setBaseQueue([
+                [
+                    'id' => $owner->ID,
+                    'title' => $owner->getTitle(),
+                    'className' => $owner->ClassName,
+                ],
+            ]);
 
-        $actions->push($translate);
+        $actions->push($translateAction);
     }
 
     public function onAfterUpdateCMSActions(FieldList $actions)
@@ -146,7 +138,6 @@ class AutoTranslate extends Extension
                 continue;
             }
 
-            // @phpstan-ignore-next-line
             $status[] = $ownedObject->autoTranslate($doPublish, $forceTranslation);
         }
 
@@ -395,8 +386,6 @@ class AutoTranslate extends Extension
     }
 
     /**
-     * @param object $owner
-     * @return DataObject|null
      * @throws RuntimeException
      */
     private function findOrCreateTranslatedObject(string $locale): DataObject

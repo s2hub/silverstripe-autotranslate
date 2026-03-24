@@ -59,27 +59,50 @@ class DeepLTranslator implements Translatable
             }
             $json = json_decode($text, true);
             foreach ($json as $key => $value) {
-                $options = [
-                    'tag_handling' => 'html',
-                    'tag_handling_version' => 'v2',
-                ];
+                if (!is_string($value)) {
+                    continue;
+                }
+
+                $isHtml = $this->looksLikeHtml($value);
+
+                $options = [];
+                if ($isHtml) {
+                    $options['tag_handling'] = 'html';
+                    $options['tag_handling_version'] = 'v2';
+                }
                 if (self::$glossaries && array_key_exists(self::$targetLocales[$targetLocale], self::$glossaries)) {
                     $options['glossary'] = self::$glossaries[self::$targetLocales[$targetLocale]];
                 }
-                if (is_string($value)) {
-                    $json[$key] = $this->translateString(
-                        $value,
-                        self::$sourceLocales[$sourceLocale],
-                        self::$targetLocales[$targetLocale],
-                        $options,
-                    );
+
+                $translated = $this->translateString(
+                    $value,
+                    self::$sourceLocales[$sourceLocale],
+                    self::$targetLocales[$targetLocale],
+                    $options,
+                );
+
+                // When the value is plain text, DeepL may return HTML entities (e.g. &amp;, &quot;).
+                // Convert them back to their original characters.
+                if (!$isHtml) {
+                    $translated = html_entity_decode($translated, ENT_QUOTES | ENT_HTML5, 'UTF-8');
                 }
+
+                $json[$key] = $translated;
             }
             return json_encode($json);
         }
         catch (Exception $exception) {
             throw new RuntimeException('Translation failed: ' . $exception->getMessage(), $exception->getCode(), $exception);
         }
+    }
+
+    /**
+     * Returns true if the string appears to contain HTML markup.
+     * A simple heuristic: the string contains at least one HTML tag.
+     */
+    private function looksLikeHtml(string $value): bool
+    {
+        return (bool) preg_match('/<[a-z][a-z0-9]*[\s\/>]/i', $value);
     }
 
     /**
