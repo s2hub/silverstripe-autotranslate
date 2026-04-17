@@ -226,6 +226,12 @@ The task throws a `RuntimeException` when the DeepL character quota is exhausted
 
 ## Thanks to
 
-Thanks to [Nobrainer](https://www.nobrainer.dk/) and [Adiwidjaja Teamworks](https://www.adiwidjaja.com/) for sponsoring this module ❤️.
+This module is based on the fluent-export-import-module by [wernerkrauss](https://github.com/wernerkrauss/silverstripe-fluent-export-import/). Thanks to [Nobrainer](https://www.nobrainer.dk/) and [Adiwidjaja Teamworks](https://www.adiwidjaja.com/) for sponsoring this module ❤️.
 
 Thanks to TractorCow and all contributors for the great [fluent module](https://github.com/tractorcow-farm/silverstripe-fluent). And thanks to the folks at Silverstripe for their great work.
+
+## S2-Hub
+
+This module is published and maintained by [S2-Hub](https://www.s2-hub.com). S2-Hub is a non-profit organisation that consists of Silverstripe CMS professionals and agencies around Europe with the goal of setting up a dedicated European professional hub for all things Silverstripe CMS.
+
+See you on next [Stripecon](https://www.stripecon.eu)!

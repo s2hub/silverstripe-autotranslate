@@ -77,7 +77,7 @@ class ChatGPTTranslator implements Translatable
                 ]
             ]);
 
-            // Sicherstellen, dass die Antwort korrekt ist
+            // Ensure the response is well-formed
             if (isset($response->choices[0]->message->content)) {
                 return $response->choices[0]->message->content;
             }
@@ -98,8 +98,8 @@ class ChatGPTTranslator implements Translatable
     {
         $command = self::config()->get('gpt_command');
 
-        // Erweiterung der Befehlslogik durch andere Klassen
-        $this->extend('updateGPTCommand', $command);
+        // Allow other classes to extend the command logic
+        $this->extend('updateGPTCommand', $command, $targetLocale);
 
         return sprintf($command, $targetLocale);
     }
