@@ -1,6 +1,6 @@
 {
-    "name": "wernerkrauss/silverstripe-fluent-export-import",
-    "description": "File export and import for SilverStripe Fluent",
+    "name": "s2hub/silverstripe-autotranslate",
+    "description": "Auto Translate for SilverStripe CMS",
     "type": "silverstripe-vendormodule",
     "keywords": [
         "silverstripe",
@@ -16,18 +16,23 @@
             "email": "werner.krauss@netwerkstatt.at",
             "homepage": "http://www.netwerkstatt.at",
             "role": "Developer"
+        },
+        {
+            "name": "Andy Adiwidjaja",
+            "email": "adiwidjaja@gmail.com",
+            "homepage": "http://www.adiwidjaja.com",
+            "role": "Developer"
         }
     ],
     "support": {
-        "issues": "https://github.com/wernerkrauss/silverstripe-fluent-export-import/issues"
+        "issues": "https://github.com/s2hub/silverstripe-autotranslate/issues"
     },
     "require": {
         "php": "^8.2",
         "ext-zip": "*",
         "silverstripe/framework": "^6",
         "tractorcow/silverstripe-fluent": "^8",
-        "atwx/silverstripe-cms-popup": "*",
-        "lekoala/silverstripe-cms-actions": "^2",
+        "s2hub/silverstripe-cms-popup": "*",
         "openai-php/client": "^0.10",
         "deeplcom/deepl-php": "^1.12"
     },
@@ -38,8 +43,8 @@
     },
     "autoload": {
         "psr-4": {
-            "Netwerkstatt\\FluentExportImport\\": "src/",
-            "Netwerkstatt\\FluentExportImport\\Tests\\": "tests/php/"
+            "S2Hub\\AutoTranslate\\": "src/",
+            "S2Hub\\AutoTranslate\\Tests\\": "tests/php/"
         }
     },
         "scripts": {

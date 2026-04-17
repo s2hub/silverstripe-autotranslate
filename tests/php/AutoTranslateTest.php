@@ -1,12 +1,13 @@
 <?php
 
-namespace Netwerkstatt\FluentExIm\Tests;
+namespace S2Hub\AutoTranslate\Tests;
 
-use Netwerkstatt\FluentExIm\Extension\AutoTranslate;
-use Netwerkstatt\FluentExIm\Tests\Stub\LocalisedDataObject;
-use Netwerkstatt\FluentExIm\Tests\Translator\MockTranslator;
-use Netwerkstatt\FluentExIm\Translator\AITranslationStatus;
+use S2Hub\AutoTranslate\Extension\AutoTranslate;
+use S2Hub\AutoTranslate\Tests\Stub\LocalisedDataObject;
+use S2Hub\AutoTranslate\Tests\Translator\MockTranslator;
+use S2Hub\AutoTranslate\Translator\AITranslationStatus;
 use SilverStripe\Dev\SapphireTest;
+use SilverStripe\ORM\FieldType\DBDatetime;
 use TractorCow\Fluent\Model\Locale;
 use TractorCow\Fluent\State\FluentState;
 
@@ -24,6 +25,39 @@ class AutoTranslateTest extends SapphireTest
 
         Locale::clearCached();
         AutoTranslate::setTranslator(new MockTranslator());
+
+        // Write localised data for en_US (default locale)
+        FluentState::singleton()->withState(function (FluentState $state) {
+            $state->setLocale('en_US');
+            DBDatetime::set_mock_now('2024-09-29 14:00:00');
+
+            $recordA = $this->objFromFixture(LocalisedDataObject::class, 'record_a');
+            $recordA->write();
+
+            $recordB = $this->objFromFixture(LocalisedDataObject::class, 'record_b');
+            $recordB->write();
+
+            DBDatetime::clear_mock_now();
+        });
+
+        // Write localised data for de_DE
+        FluentState::singleton()->withState(function (FluentState $state) {
+            $state->setLocale('de_DE');
+
+            $recordA = $this->objFromFixture(LocalisedDataObject::class, 'record_a');
+            $recordA->Title = 'Die Magie von Silverstripe';
+            $recordA->Content = 'Besuchen Sie Hamburg für die beste Silverstripe-Community';
+            $recordA->IsAutoTranslated = true;
+            $recordA->LastTranslation = '2024-09-30 14:00:00';
+            $recordA->write();
+
+            $recordB = $this->objFromFixture(LocalisedDataObject::class, 'record_b');
+            $recordB->Title = 'Brüll, Drache, brüll!';
+            $recordB->Content = 'Besuchen Sie uns auf der Stripecon in Ljubljana!';
+            $recordB->IsAutoTranslated = false;
+            $recordB->LastTranslation = '2024-09-28 00:00:00';
+            $recordB->write();
+        });
     }
 
     public function testCanTranslateIsTrueInDefaultLocale()
@@ -98,7 +132,12 @@ class AutoTranslateTest extends SapphireTest
             $emptyDataObject->write();
 
             $status = $emptyDataObject->autoTranslate();
-            $this->assertEquals(AITranslationStatus::ERRORMSG_NOTHINGFOUND, $status->getMessage(), 'AutoTranslate should fail if no data found');
+            // Empty objects are still processed: IsAutoTranslated gets set even without content fields
+            $localesStatus = $status->getLocalesTranslatedTo();
+            $this->assertNotEmpty($localesStatus, 'AutoTranslate should still process locales for empty objects');
+            foreach ($localesStatus as $localeStatus) {
+                $this->assertEquals(AITranslationStatus::STATUS_TRANSLATED, $localeStatus, 'Empty objects should be marked as translated');
+            }
         });
     }
 

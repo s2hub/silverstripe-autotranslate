@@ -1,15 +1,15 @@
 <?php
 
-namespace Netwerkstatt\FluentExIm\Extension;
+namespace S2Hub\AutoTranslate\Extension;
 
 use Exception;
 use JsonException;
-use Atwx\CmsPopup\Forms\CmsModalBatchAction;
-use Netwerkstatt\FluentExIm\Handler\AITranslateBatchHandler;
-use Netwerkstatt\FluentExIm\Helper\FluentHelper;
-use Netwerkstatt\FluentExIm\Translator\AITranslationStatus;
-use Netwerkstatt\FluentExIm\Translator\Translatable;
-use Netwerkstatt\FluentExIm\Translator\TranslatableFactory;
+use S2Hub\CmsPopup\Forms\CmsModalBatchAction;
+use S2Hub\AutoTranslate\Handler\AITranslateBatchHandler;
+use S2Hub\AutoTranslate\Helper\FluentHelper;
+use S2Hub\AutoTranslate\Translator\AITranslationStatus;
+use S2Hub\AutoTranslate\Translator\Translatable;
+use S2Hub\AutoTranslate\Translator\TranslatableFactory;
 use RuntimeException;
 use SilverStripe\Core\Extension;
 use SilverStripe\Forms\CheckboxField;

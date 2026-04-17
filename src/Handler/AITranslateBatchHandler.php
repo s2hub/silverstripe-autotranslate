@@ -1,10 +1,10 @@
 <?php
 
-namespace Netwerkstatt\FluentExIm\Handler;
+namespace S2Hub\AutoTranslate\Handler;
 
-use Atwx\CmsPopup\Handler\CmsPopupBatchHandler;
-use Netwerkstatt\FluentExIm\Extension\AutoTranslate;
-use Netwerkstatt\FluentExIm\Translator\AITranslationStatus;
+use S2Hub\CmsPopup\Handler\CmsPopupBatchHandler;
+use S2Hub\AutoTranslate\Extension\AutoTranslate;
+use S2Hub\AutoTranslate\Translator\AITranslationStatus;
 use Psr\Log\LoggerInterface;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Control\HTTPRequest;

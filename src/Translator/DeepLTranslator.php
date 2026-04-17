@@ -1,6 +1,6 @@
 <?php
 
-namespace Netwerkstatt\FluentExIm\Translator;
+namespace S2Hub\AutoTranslate\Translator;
 
 use Exception;
 use RuntimeException;
@@ -90,8 +90,7 @@ class DeepLTranslator implements Translatable
                 $json[$key] = $translated;
             }
             return json_encode($json);
-        }
-        catch (Exception $exception) {
+        } catch (Exception $exception) {
             throw new RuntimeException('Translation failed: ' . $exception->getMessage(), $exception->getCode(), $exception);
         }
     }

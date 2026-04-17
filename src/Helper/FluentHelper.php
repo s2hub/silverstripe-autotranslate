@@ -1,6 +1,6 @@
 <?php
 
-namespace Netwerkstatt\FluentExIm\Helper;
+namespace S2Hub\AutoTranslate\Helper;
 
 use InvalidArgumentException;
 use SilverStripe\Core\ClassInfo;

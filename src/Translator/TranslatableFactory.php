@@ -1,14 +1,16 @@
 <?php
 
-namespace Netwerkstatt\FluentExIm\Translator;
+namespace S2Hub\AutoTranslate\Translator;
 
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Environment;
 use SilverStripe\Core\Injector\Injector;
 
-class TranslatableFactory {
+class TranslatableFactory
+{
     use Configurable;
-    public static function getBackendName(): string {
+    public static function getBackendName(): string
+    {
         $backendName = Environment::getEnv("FLUENT_TRANS_BACKEND");
 
         if ($backendName === false || $backendName === null) {
@@ -18,11 +20,13 @@ class TranslatableFactory {
         return $backendName;
     }
 
-    public static function getBackend(): string {
+    public static function getBackend(): string
+    {
         return self::config()->get("translators")[self::getBackendName()];
     }
 
-    public static function getInstance(): Translatable {
+    public static function getInstance(): Translatable
+    {
         $backend = self::getBackend();
 
         if (!class_exists($backend)) {

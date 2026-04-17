@@ -1,5 +1,5 @@
 de:
-  Netwerkstatt\FluentExIm\Extension\AutoTranslate:
+  S2Hub\AutoTranslate\Extension\AutoTranslate:
     TARGET_LANGUAGES: 'Zielsprachen'
     PUBLISH_AFTER: 'Nach Übersetzung veröffentlichen'
     ONLY_NEW: 'Nur neue Inhalte übersetzen'

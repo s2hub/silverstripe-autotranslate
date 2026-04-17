@@ -1,8 +1,8 @@
 <?php
 
-namespace Netwerkstatt\FluentExIm\Tests\Translator;
+namespace S2Hub\AutoTranslate\Tests\Translator;
 
-use Netwerkstatt\FluentExIm\Translator\Translatable;
+use S2Hub\AutoTranslate\Translator\Translatable;
 use SilverStripe\Dev\TestOnly;
 
 class MockTranslator implements Translatable, TestOnly
@@ -11,7 +11,7 @@ class MockTranslator implements Translatable, TestOnly
     /**
      * @inheritDoc
      */
-    public function translate(string $text, string $targetLocale): string
+    public function translate(string $text, string $sourceLocale, string $targetLocale): string
     {
         //assume we have a json string
         $translations = json_decode($text, true);

@@ -1,6 +1,6 @@
 <?php
 
-namespace Netwerkstatt\FluentExIm\Task;
+namespace S2Hub\AutoTranslate\Task;
 
 use Exception;
 use InvalidArgumentException;
@@ -9,9 +9,9 @@ use Monolog\Handler\FilterHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Level;
 use Monolog\Logger;
-use Netwerkstatt\FluentExIm\Extension\AutoTranslate;
-use Netwerkstatt\FluentExIm\Helper\FluentHelper;
-use Netwerkstatt\FluentExIm\Translator\AITranslationStatus;
+use S2Hub\AutoTranslate\Extension\AutoTranslate;
+use S2Hub\AutoTranslate\Helper\FluentHelper;
+use S2Hub\AutoTranslate\Translator\AITranslationStatus;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 use SilverStripe\Core\Injector\Injector;

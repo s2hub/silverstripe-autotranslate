@@ -1,6 +1,6 @@
 <?php
 
-namespace Netwerkstatt\FluentExIm\Translator;
+namespace S2Hub\AutoTranslate\Translator;
 
 use SilverStripe\Model\ModelData;
 use SilverStripe\Model\List\ArrayList;

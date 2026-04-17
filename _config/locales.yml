@@ -1,7 +1,7 @@
 # This file has been generated from:
 # - https://developers.deepl.com/docs/getting-started/supported-languages
 
-Netwerkstatt\FluentExIm\Translator\DeepLTranslator:
+S2Hub\AutoTranslate\Translator\DeepLTranslator:
   source_locales:
     # SilverStripe locale -> DeepL locale code
     # Keys are full SilverStripe locale codes (language_COUNTRY)

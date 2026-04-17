@@ -1,0 +1,16 @@
+---
+name: silverstripe-autotranslate
+---
+SilverStripe\CMS\Model\SiteTree:
+  translate_ignore:
+    - URLSegment
+
+SilverStripe\Control\Director:
+  rules:
+    'aitranslate': S2Hub\AutoTranslate\Control\AITranslateController
+
+S2Hub\AutoTranslate\Translator\TranslatableFactory:
+  # For available backends, see "translators.yml".
+  # This setting may be overwritten by FLUENT_TRANS_BACKEND env var.
+
+  backend: ChatGPT

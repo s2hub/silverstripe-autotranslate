@@ -1,4 +1,4 @@
-Netwerkstatt\FluentExIm\Translator\TranslatableFactory:
+S2Hub\AutoTranslate\Translator\TranslatableFactory:
   translators:
-    DeepL: Netwerkstatt\FluentExIm\Translator\DeepLTranslator
-    ChatGPT: Netwerkstatt\FluentExIm\Translator\ChatGPTTranslator
+    DeepL: S2Hub\AutoTranslate\Translator\DeepLTranslator
+    ChatGPT: S2Hub\AutoTranslate\Translator\ChatGPTTranslator
