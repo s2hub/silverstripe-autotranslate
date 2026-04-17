@@ -35,7 +35,7 @@ class AITranslateBatchHandler extends CmsPopupBatchHandler
                 ->setValue(true),
             CheckboxField::create('onlyNew', _t(AutoTranslate::class . '.ONLY_NEW', 'Only translate new content'))
                 ->setValue(true),
-            CheckboxField::create('recursive', _t(AutoTranslate::class . '.RECURSIVE', 'Translate child pages recursively')),
+            CheckboxField::create('recursive', _t(AutoTranslate::class . '.RECURSIVE', 'Also translate child pages')),
         ]);
     }
 
@@ -98,7 +98,7 @@ class AITranslateBatchHandler extends CmsPopupBatchHandler
 
         try {
             /** @var AITranslationStatus $status */
-            $status = $object->autoTranslate($doPublish, $forceTranslation, $locales);
+            $status = $object->autoTranslate($doPublish, $forceTranslation, $locales, true);
         } catch (\Exception $e) {
             Injector::inst()->get(LoggerInterface::class)->error(
                 'AITranslateBatchHandler::processItem - ' . $e->getMessage(),

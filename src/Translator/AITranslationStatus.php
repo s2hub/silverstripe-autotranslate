@@ -29,6 +29,15 @@ class AITranslationStatus extends ModelData
 
     private array $locales_translated_to = [];
 
+    /**
+     * Raw per-locale status strings, before summarisation. One entry per object
+     * that reported a result for that locale (e.g. the page itself plus each
+     * owned element). Keyed by locale code.
+     *
+     * @var array<string, string[]>
+     */
+    private array $localeRaw = [];
+
     private string $status;
 
     public function __construct(
@@ -39,10 +48,6 @@ class AITranslationStatus extends ModelData
         private string $aiResponse = '',
         private array|string $data = []
     ) {
-        if ($status === '') {
-            $status = self::STATUS_ERROR;
-        }
-
         $this->failover = $object;
         $this->object = $object;
         $this->status = $status;
@@ -90,8 +95,114 @@ class AITranslationStatus extends ModelData
 
     public function addLocale(string $locale, string $status): self
     {
-        $this->locales_translated_to[$locale] = $status;
+        $this->localeRaw[$locale][] = $status;
+        $this->locales_translated_to[$locale] = $this->summarizeLocale($locale);
         return $this;
+    }
+
+    /**
+     * Merge per-locale statuses from an owned object's status into this one.
+     * Each owned-object status contributes one entry per locale; the summary
+     * string for the locale is regenerated after each merge.
+     */
+    public function mergeOwnedStatus(AITranslationStatus $other): self
+    {
+        foreach ($other->localeRaw as $locale => $statuses) {
+            foreach ($statuses as $status) {
+                $this->localeRaw[$locale][] = $status;
+            }
+            $this->locales_translated_to[$locale] = $this->summarizeLocale($locale);
+        }
+        return $this;
+    }
+
+    /**
+     * Set the top-level status from the per-locale summaries. Any locale in
+     * error → overall Error; otherwise Published if anything was published,
+     * Translated if anything was written, else the first remaining status.
+     */
+    public function aggregateStatus(): self
+    {
+        if ($this->localeRaw === []) {
+            if ($this->status === '') {
+                $this->status = self::STATUS_ERROR;
+            }
+            return $this;
+        }
+
+        $hasError = false;
+        $hasPublished = false;
+        $hasTranslated = false;
+        $firstOther = null;
+
+        foreach ($this->localeRaw as $statuses) {
+            foreach ($statuses as $s) {
+                if (str_starts_with($s, self::STATUS_ERROR)) {
+                    $hasError = true;
+                } elseif ($s === self::STATUS_PUBLISHED) {
+                    $hasPublished = true;
+                } elseif ($s === self::STATUS_TRANSLATED) {
+                    $hasTranslated = true;
+                } elseif ($firstOther === null) {
+                    $firstOther = $s;
+                }
+            }
+        }
+
+        $this->status = match (true) {
+            $hasError => self::STATUS_ERROR,
+            $hasPublished => self::STATUS_PUBLISHED,
+            $hasTranslated => self::STATUS_TRANSLATED,
+            $firstOther !== null => $firstOther,
+            default => self::STATUS_ERROR,
+        };
+        return $this;
+    }
+
+    private function summarizeLocale(string $locale): string
+    {
+        $statuses = $this->localeRaw[$locale] ?? [];
+        if (count($statuses) === 1) {
+            return $statuses[0];
+        }
+
+        $counts = [
+            self::STATUS_PUBLISHED => 0,
+            self::STATUS_TRANSLATED => 0,
+            self::STATUS_ALREADYTRANSLATED => 0,
+            self::STATUS_NOTAUTOTRANSLATED => 0,
+            self::STATUS_NOTHINGTOTRANSLATE => 0,
+        ];
+        $errorCount = 0;
+        $firstError = null;
+
+        foreach ($statuses as $s) {
+            if (str_starts_with($s, self::STATUS_ERROR)) {
+                $errorCount++;
+                $firstError ??= $s;
+                continue;
+            }
+            if (array_key_exists($s, $counts)) {
+                $counts[$s]++;
+            }
+        }
+
+        $parts = [];
+        foreach ($counts as $label => $n) {
+            if ($n > 0) {
+                $parts[] = $n . ' × ' . $label;
+            }
+        }
+        if ($errorCount > 0) {
+            $parts[] = $errorCount . ' × ' . self::STATUS_ERROR;
+        }
+
+        $summary = implode(', ', $parts);
+        if ($errorCount > 0) {
+            return self::STATUS_ERROR . ': ' . $summary
+                . ($firstError !== null ? ' — first: ' . $firstError : '');
+        }
+        return $summary;
     }
 
     public function setSource(string $source): AITranslationStatus

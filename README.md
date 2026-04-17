@@ -8,105 +8,224 @@ composer require s2hub/silverstripe-autotranslate
 ```
 
 ### Silverstripe CMS Versions
-Version 2 of this module is for Silverstripe CMS 6
+The current version of this module is for Silverstripe CMS 6.
 
-## Automatic Translation
-You can use the ChatGPT API to translate your content. To do so, you need to set the API key in your .env file:
+## Setup
 
-```
-CHATGPT_API_KEY=your-api-key
-```
-
-Next add extension to all classes you want to translate:
+### 1. Add the extension to your classes
 
 ```yml
-# SiteTree has already fluent applied
+# SiteTree already has fluent applied
 SilverStripe\CMS\Model\SiteTree:
   extensions:
     autotranslate: S2Hub\AutoTranslate\Extension\AutoTranslate
 
 My\Namespace\Model\Foo:
-    extensions:
-        fluent: TractorCow\Fluent\Extension\FluentExtension
-        autotranslate: S2Hub\AutoTranslate\Extension\AutoTranslate
-# if you have configured translations, make sure to add IsAutoTranslated and LastTranslation manually
-    translate:
-        - IsAutoTranslated
-        - LastTranslation
+  extensions:
+    fluent: TractorCow\Fluent\Extension\FluentExtension
+    autotranslate: S2Hub\AutoTranslate\Extension\AutoTranslate
+  # if you have a manual `translate` config on this class, you must add these fields explicitly:
+  translate:
+    - IsAutoTranslated
+    - LastTranslation
 ```
 
-The `AutoTranslate` extension adds a flag `IsAutoTranslated` to the class and a field `LastTranslation` to each locale. It's meant to be controlled by an editor, if the translation is correct.
+The `AutoTranslate` extension adds two fields to each locale:
+- `IsAutoTranslated` – flag that editors can toggle to mark a translation as manually reviewed
+- `LastTranslation` – timestamp of the last auto-translation
 
+⚠️ Some extensions from other modules define `translated` config on a class. If that applies to your class, you must add `IsAutoTranslated` and `LastTranslation` to the `translate` list manually (see Troubleshooting).
 
-⚠️ Be aware, that some extensions of other modules might add `translated` config to a class. Then you have to add `IsAutoTranslated` and `LastTranslation` to the `translated` config as well.
+### 2. Choose and configure a translation backend
 
-### Configuring ChatGPT
-You can configure the ChatGPT API in your config.yml:
+Two backends are available: **ChatGPT** (default) and **DeepL**.
+
+Set the active backend in your config or via environment variable:
+
+```yml
+S2Hub\AutoTranslate\Translator\TranslatableFactory:
+  backend: DeepL  # or ChatGPT (default)
+```
+
+The environment variable `FLUENT_TRANS_BACKEND` takes precedence over the config value:
+
+```
+FLUENT_TRANS_BACKEND=DeepL
+```
+
+---
+
+## ChatGPT
+
+### API Key
+
+```
+CHATGPT_API_KEY=your-api-key
+```
+
+### Configuration
 
 ```yml
 S2Hub\AutoTranslate\Translator\ChatGPTTranslator:
   gpt_model: gpt-4o-mini
-  # %s will be replaced with the target locale
+  # %s will be replaced with the target locale name
   gpt_command: 'You are a professional translator. Translate the following text to %s language. Please keep the json format intact.'
 ```
 
-If you need to configure the gpt_command more dynamically, you can use the following code in an Extension to `ChatGPTTranslator`:
+### Customising the prompt dynamically
+
+Add an extension to `ChatGPTTranslator` and implement `updateGptCommand`:
 
 ```php
 public function updateGptCommand(&$command, $locale)
 {
-    $command = 'You are a professional translator. Translate the following text to ' . $locale . ' language. Please keep the json format intact.';
+    $command = 'Translate the following JSON to ' . $locale . '. Preserve the JSON structure.';
 }
 ```
 
-#### How to find available GPT models
-In ssshell you can run the following commands to find out, which models are currently available for your API key:
+### Finding available GPT models
+
+In `ssshell` you can list models available for your API key:
 
 ```php
-$api_key = Environment::getEnv('CHATGPT_API_KEY');
-$gpt = new S2Hub\AutoTranslate\Translator\ChatGPTTranslator($api_key);
+$gpt = new S2Hub\AutoTranslate\Translator\ChatGPTTranslator(Environment::getEnv('CHATGPT_API_KEY'));
 $gpt->getModels();
 ```
 
-### fluent-ai-autotranslate task
-When everything is configured properly you can run the task `sake tasks:FluentAIAutoTranslate --du_publish=1` to translate all content to the desired locale.
+---
 
-If IsAutoTranslated of LastTranslation is missing in localised fields, the task will throw a RuntimeException.
+## DeepL
 
-Notice: the task can only publish translated content, if you use `FluentVersionedExtension` instead of `FluentExtension` on the versioned DataObjects.
+### API Key
 
-#### Parameters:
-* `do_publish` (required, shortcut: `p`): If set to 1, the task will publish the translated content.
-* `force_translation` (optional): If set to 1, the task will translate all content that is untranslated or marked as previoulsy auto translated, even if it was already translated.
-* `locale_from` (optonal, shortcut: `l`): set the source locale for translations
-* `locales_to` (optional, shortut: `t`): limit translations to  this locales; expects a semicolon separated list, e.g. `--locales_to="en_US;es_ES"`
+```
+DEEPL_API_KEY=your-api-key
+```
 
-
-See `sake tasks:FluentAIAutoTranslate --help` for all available commands.
-
-## Troubleshooting / FAQ
-###  [Emergency] Uncaught RuntimeException: My\Namespace\HomePage does not have IsAutoTranslated as translatable field
-
-It seems, your `SiteTree` (or the main class where you applied the AutoTranslate extension) has defined the `translate` fields manually. While the above config works in many cases, you need to define the translated fields required by this extension manually:
+### Enabling DeepL
 
 ```yml
-# SiteTree has already fluent applied
+S2Hub\AutoTranslate\Translator\TranslatableFactory:
+  backend: DeepL
+```
+
+or via environment variable:
+
+```
+FLUENT_TRANS_BACKEND=DeepL
+```
+
+### Locale mapping
+
+The module ships with locale mappings for 40+ languages in `_config/locales.yml`. DeepL uses different language codes than SilverStripe (e.g. `en_US` → `EN-US`, `de_DE` → `DE`). Override or extend mappings in your project config if needed:
+
+```yml
+S2Hub\AutoTranslate\Translator\DeepLTranslator:
+  source_locales:
+    de_DE: DE
+    en_US: EN
+  target_locales:
+    de_DE: DE
+    en_US: EN-US
+    en_GB: EN-GB
+```
+
+### Glossaries
+
+DeepL glossaries let you enforce consistent terminology (e.g. brand names, product terms). Create glossaries in your DeepL account, then map their IDs to DeepL target language codes in your config:
+
+```yml
+S2Hub\AutoTranslate\Translator\DeepLTranslator:
+  glossaries:
+    EN-US: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
+    DE: 'yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy'
+```
+
+The key must match the **DeepL target language code** (not the SilverStripe locale). The glossary is applied automatically whenever a translation targets that language.
+
+### HTML handling
+
+DeepL receives the SilverStripe field values as a JSON object. If a field value contains HTML markup, the translator automatically enables DeepL's HTML tag handling (`tag_handling: html`) to preserve markup structure. Plain text values are handled separately, with HTML entities decoded back after translation.
+
+Large HTML content is split into chunks at block-level tag boundaries to stay below DeepL's 75 kB request limit.
+
+---
+
+## Running translations
+
+### CLI task
+
+```bash
+sake tasks:FluentAIAutoTranslate --do_publish=1
+```
+
+#### Parameters
+
+| Parameter | Shortcut | Required | Description |
+|---|---|---|---|
+| `--do_publish` | `-p` | yes | Set to `1` to publish translated content. Requires `FluentVersionedExtension` on versioned objects. |
+| `--force_translation` | | no | Re-translate everything, including content already marked as manually edited (`IsAutoTranslated=false`). |
+| `--locale_from` | `-l` | no | Source locale (defaults to the site's default locale). |
+| `--locales_to` | `-t` | no | Semicolon-separated list of target locales, e.g. `--locales_to="en_US;es_ES"`. Translates to all locales if omitted. |
+
+```bash
+sake tasks:FluentAIAutoTranslate --help
+```
+
+### CMS UI
+
+The `AutoTranslate` extension adds an **Auto Translate** button to the CMS actions bar. The button is only shown when editing a record in the **default locale** – it is hidden for translated locales.
+
+Requires the `s2hub/silverstripe-cms-popup` module, which provides the modal infrastructure.
+
+Clicking the button opens a modal with four options:
+
+| Option | Default | Description |
+|---|---|---|
+| **Target languages** | all non-default locales selected | Select which locales to translate to. |
+| **Publish after translation** | on | Publish the translated content immediately. Requires `FluentVersionedExtension` and the source record must be published. |
+| **Only translate new content** | on | Skip records where `IsAutoTranslated = false` (manually edited) or whose `LastTranslation` is newer than the source. Uncheck to force re-translation of everything. |
+| **Recursive** | off | Also queue all child pages for translation (SiteTree only). |
+
+The modal processes items one by one and displays per-locale feedback (translated, published, skipped, error) for each item as it completes.
+
+**Owned objects** (e.g. Elemental blocks, Links, related media records) are always translated inline as part of the parent record – they do not appear as separate queue items. The *Recursive* option only controls whether child *pages* are added to the queue.
+
+---
+
+## Translation behaviour
+
+- Translation always reads from the **default locale**.
+- A record is skipped if `IsAutoTranslated = false` (manual edit detected), unless `force_translation` is set.
+- A locale is skipped if its `LastTranslation` timestamp is newer than the source record's, meaning it was manually edited after the last auto-translation, unless `force_translation` is set.
+- `IsAutoTranslated` is set to `true` and `LastTranslation` is updated after each successful translation.
+- Publishing only works if the object uses `FluentVersionedExtension` instead of `FluentExtension`.
+
+---
+
+## Troubleshooting
+
+### `[Emergency] Uncaught RuntimeException: My\Namespace\HomePage does not have IsAutoTranslated as translatable field`
+
+Your class defines a manual `translate` list. Add the required fields:
+
+```yml
 SilverStripe\CMS\Model\SiteTree:
   extensions:
     autotranslate: S2Hub\AutoTranslate\Extension\AutoTranslate
-    translate:
-        - IsAutoTranslated
-        - LastTranslation
+  translate:
+    - IsAutoTranslated
+    - LastTranslation
 ```
-This should fix the issues.
 
+### DeepL API character limit reached
 
-## Todo
-## AI Translation
-- [X] ~~documentation how to ask ChatGPT to translate in a correct way~~
-- [ ] implement other translation services like DeepL
+The task throws a `RuntimeException` when the DeepL character quota is exhausted. Check your usage in the DeepL account dashboard and upgrade your plan or wait for the quota reset.
+
+---
 
 ## Thanks to
+
 Thanks to [Nobrainer](https://www.nobrainer.dk/) and [Adiwidjaja Teamworks](https://www.adiwidjaja.com/) for sponsoring this module ❤️.
 
 Thanks to TractorCow and all contributors for the great [fluent module](https://github.com/tractorcow-farm/silverstripe-fluent). And thanks to the folks at Silverstripe for their great work.

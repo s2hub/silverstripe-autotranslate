@@ -110,50 +110,15 @@ class AutoTranslate extends Extension
         $actions->push($translateAction);
     }
 
-    public function onAfterUpdateCMSActions(FieldList $actions)
-    {
-        $translateAction = $actions->fieldByName('doTranslate');
-        if ($translateAction) {
-            //move at the end of the stack to appear on the right side
-            $actions->remove($translateAction);
-            $actions->push($translateAction);
-        }
-    }
-
-    /**
-     * @param $data
-     * @param $form
-     * @return AITranslationStatus[]
-     * @throws JsonException
-     */
-    public function doRecursiveAutoTranslate(array $data, $form): array
-    {
-        $doPublish = $data['doPublish'] ?? false;
-        $forceTranslation = $data['forceTranslation'] ?? false;
-        //@todo ability to filter locales to translate to
-        $status[] = $this->autoTranslate($doPublish, $forceTranslation);
-        $ownedObjects = $this->getOwner()->findRelatedObjects('owns', true);
-        foreach ($ownedObjects as $ownedObject) {
-            if (!$ownedObject->hasExtension(AutoTranslate::class)) {
-                continue;
-            }
-
-            $status[] = $ownedObject->autoTranslate($doPublish, $forceTranslation);
-        }
-
-        return $status;
-    }
-
-
     /**
      * @throws RuntimeException
      * @throws JsonException
-     * @todo: currently only chatgpt is supported, make it more generic
      */
     public function autoTranslate(
         bool $doPublish = false,
         bool $forceTranslation = false,
-        array $limit_locales = []
+        array $limit_locales = [],
+        bool $includeOwned = false
     ): AITranslationStatus {
         $this->checkIfAutoTranslateFieldsAreTranslatable();
         $status = AITranslationStatus::create($this->getOwner());
@@ -209,7 +174,38 @@ class AutoTranslate extends Extension
                     });
                 });
         }
+
+        if ($includeOwned) {
+            $this->translateOwnedObjects($status, $doPublish, $forceTranslation, $limit_locales);
+        }
+
+        $status->aggregateStatus();
         return $status;
+    }
+
+    /**
+     * Iterate all transitively owned DataObjects (e.g. ElementalArea → BaseElements,
+     * Links, media records) and run autoTranslate() on each that has the extension.
+     * Per-locale statuses from each owned object are merged into the parent $status.
+     */
+    private function translateOwnedObjects(
+        AITranslationStatus $status,
+        bool $doPublish,
+        bool $forceTranslation,
+        array $limit_locales
+    ): void {
+        $ownedObjects = $this->getOwner()->findRelatedObjects('owns', true);
+        foreach ($ownedObjects as $ownedObject) {
+            if (!$ownedObject->hasExtension(AutoTranslate::class)) {
+                continue;
+            }
+            if (!$ownedObject->hasMethod('autoTranslate')) {
+                continue;
+            }
+
+            $ownedStatus = $ownedObject->autoTranslate($doPublish, $forceTranslation, $limit_locales, false);
+            $status->mergeOwnedStatus($ownedStatus);
+        }
     }
 
 
