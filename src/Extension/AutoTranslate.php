@@ -130,11 +130,6 @@ class AutoTranslate extends Extension
         }
 
         $data = $this->getTranslatableFields();
-        if ($data === []) {
-            return $status->setStatus(AITranslationStatus::STATUS_ERROR)->setMessage(AITranslationStatus::ERRORMSG_NOTHINGFOUND);
-        }
-
-        $json = json_encode($data, JSON_THROW_ON_ERROR);
 
         $translator = self::getTranslator();
 
@@ -149,7 +144,7 @@ class AutoTranslate extends Extension
                     $locale,
                     $translator,
                     $status,
-                    $json,
+                    $data,
                     $doPublish,
                     $forceTranslation
                 ) {
@@ -158,7 +153,7 @@ class AutoTranslate extends Extension
                         $locale,
                         $translator,
                         $status,
-                        $json,
+                        $data,
                         $doPublish,
                         $forceTranslation
                     ) {
@@ -167,7 +162,7 @@ class AutoTranslate extends Extension
                             $translator,
                             $status,
                             $locale,
-                            $json,
+                            $data,
                             $doPublish,
                             $forceTranslation
                         );
@@ -283,7 +278,7 @@ class AutoTranslate extends Extension
         Translatable $translator,
         AITranslationStatus $status,
         Locale $locale,
-        false|string $json,
+        array $data,
         bool $doPublish = false,
         bool $forceTranslation = false
     ): AITranslationStatus {
@@ -311,27 +306,31 @@ class AutoTranslate extends Extension
             return $status;
         }
 
-        $translatedDataOrig = $translator->translate(
-            $json,
-            Locale::getDefault()->Locale,
-            $locale->Locale
-        );
-        $translatedData = json_decode($translatedDataOrig, true);
+        if ($data !== []) {
+            $json = json_encode($data, JSON_THROW_ON_ERROR);
+            $translatedDataOrig = $translator->translate(
+                $json,
+                Locale::getDefault()->Locale,
+                $locale->Locale
+            );
+            $translatedData = json_decode($translatedDataOrig, true);
 
-        if (!$translatedData) {
-            $status->addLocale($locale->Locale, AITranslationStatus::STATUS_NOTHINGTOTRANSLATE);
-            return $status;
+            if (!$translatedData) {
+                $status->addLocale($locale->Locale, AITranslationStatus::STATUS_NOTHINGTOTRANSLATE);
+                return $status;
+            }
+
+            if (!is_array($translatedData)) {
+                $status->addLocale($locale->Locale, AITranslationStatus::STATUS_ERROR);
+                $status->setSource($json);
+                $status->setAiResponse($translatedDataOrig);
+                $status->setData($translatedData);
+                return $status;
+            }
+
+            $translatedObject->update($translatedData);
         }
 
-        if (!is_array($translatedData)) {
-            $status->addLocale($locale->Locale, AITranslationStatus::STATUS_ERROR);
-            $status->setSource($json);
-            $status->setAiResponse($translatedDataOrig);
-            $status->setData($translatedData);
-            return $status;
-        }
-
-        $translatedObject->update($translatedData);
         $translatedObject->IsAutoTranslated = true;
         $translatedObject->LastTranslation = DBDatetime::now()->getValue();
 
