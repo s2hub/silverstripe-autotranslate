@@ -9,6 +9,10 @@ SilverStripe\Control\Director:
   rules:
     'aitranslate': S2Hub\AutoTranslate\Control\AITranslateController
 
+SilverStripe\Forms\GridField\GridFieldDetailForm_ItemRequest:
+  extensions:
+    - S2Hub\AutoTranslate\Extension\GridFieldItemRequestExtension
+
 S2Hub\AutoTranslate\Translator\TranslatableFactory:
   # For available backends, see "translators.yml".
   # This setting may be overwritten by FLUENT_TRANS_BACKEND env var.
