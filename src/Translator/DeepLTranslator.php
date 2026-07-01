@@ -49,15 +49,37 @@ class DeepLTranslator implements Translatable
      */
     private static int $max_chunk_bytes = 70000;
 
+    /**
+     * Maximum number of texts DeepL accepts in a single batched translateText() call.
+     */
+    private static int $max_texts_per_batch = 50;
+
+    /**
+     * Whether the DeepL usage/quota has already been checked in this process.
+     * Checking it on every translate() call was costing one extra HTTP request
+     * per object per locale; once per process is enough to catch an exhausted quota.
+     */
+    private static bool $usageChecked = false;
+
     #[\Override]
     public function translate(string $text, string $sourceLocale, string $targetLocale): string
     {
         try {
-            $usage = $this->client->getUsage();
-            if ($usage->anyLimitReached()) {
-                throw new RuntimeException('Translation failed: DeepL API character limit reached');
+            if (!self::$usageChecked) {
+                $usage = $this->client->getUsage();
+                if ($usage->anyLimitReached()) {
+                    throw new RuntimeException('Translation failed: DeepL API character limit reached');
+                }
+                self::$usageChecked = true;
             }
+
             $json = json_decode($text, true);
+
+            // Group string fields by their option signature first — DeepL requires every
+            // text in a single batched request to share the same source/target lang and
+            // options (tag_handling, glossary, ...) — then translate each group with as
+            // few API calls as possible instead of one call per field.
+            $groups = [];
             foreach ($json as $key => $value) {
                 if (!is_string($value)) {
                     continue;
@@ -74,25 +96,88 @@ class DeepLTranslator implements Translatable
                     $options['glossary'] = self::$glossaries[self::$targetLocales[$targetLocale]];
                 }
 
-                $translated = $this->translateString(
-                    $value,
+                $signature = json_encode($options);
+                $groups[$signature]['options'] ??= $options;
+                $groups[$signature]['isHtml'] ??= $isHtml;
+                $groups[$signature]['fields'][$key] = $value;
+            }
+
+            foreach ($groups as $group) {
+                $translations = $this->translateGroup(
+                    $group['fields'],
                     self::$sourceLocales[$sourceLocale],
                     self::$targetLocales[$targetLocale],
-                    $options,
+                    $group['options'],
                 );
 
-                // When the value is plain text, DeepL may return HTML entities (e.g. &amp;, &quot;).
-                // Convert them back to their original characters.
-                if (!$isHtml) {
-                    $translated = html_entity_decode($translated, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                foreach ($translations as $key => $translated) {
+                    // When the value is plain text, DeepL may return HTML entities (e.g. &amp;, &quot;).
+                    // Convert them back to their original characters.
+                    if (!$group['isHtml']) {
+                        $translated = html_entity_decode($translated, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                    }
+                    $json[$key] = $translated;
                 }
-
-                $json[$key] = $translated;
             }
+
             return json_encode($json);
         } catch (Exception $exception) {
             throw new RuntimeException('Translation failed: ' . $exception->getMessage(), $exception->getCode(), $exception);
         }
+    }
+
+    /**
+     * Translates a group of fields that all share the same DeepL options, batching them
+     * into as few translateText() calls as possible (DeepL accepts an array of texts per
+     * request, capped at $max_texts_per_batch and a combined size of $max_chunk_bytes).
+     * Individual values that exceed $max_chunk_bytes on their own are translated separately
+     * via translateString(), which splits and re-joins them.
+     *
+     * @param array<string,string> $fields Map of field key => text value
+     * @return array<string,string> Map of field key => translated text
+     */
+    private function translateGroup(array $fields, string $sourceLang, string $targetLang, array $options): array
+    {
+        $result = [];
+        $batchKeys = [];
+        $batchTexts = [];
+        $batchBytes = 0;
+
+        $flush = function () use (&$batchKeys, &$batchTexts, &$batchBytes, &$result, $sourceLang, $targetLang, $options) {
+            if ($batchTexts === []) {
+                return;
+            }
+            $translations = $this->client->translateText($batchTexts, $sourceLang, $targetLang, $options);
+            foreach ($batchKeys as $i => $key) {
+                $result[$key] = $translations[$i]->text;
+            }
+            $batchKeys = [];
+            $batchTexts = [];
+            $batchBytes = 0;
+        };
+
+        foreach ($fields as $key => $value) {
+            if (strlen($value) > self::$max_chunk_bytes) {
+                $flush();
+                $result[$key] = $this->translateString($value, $sourceLang, $targetLang, $options);
+                continue;
+            }
+
+            if (
+                count($batchTexts) >= self::$max_texts_per_batch
+                || $batchBytes + strlen($value) > self::$max_chunk_bytes
+            ) {
+                $flush();
+            }
+
+            $batchKeys[] = $key;
+            $batchTexts[] = $value;
+            $batchBytes += strlen($value);
+        }
+
+        $flush();
+
+        return $result;
     }
 
     /**
