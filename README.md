@@ -1,6 +1,6 @@
 # Silverstripe AutoTranslate
 
-An extension for silverstripe/fluent to automatically translate content using AI services (ChatGPT, DeepL).
+An extension for silverstripe/fluent to automatically translate content using AI services (LLM providers like OpenAI/ChatGPT, Mistral, Requesty, DeepL).
 
 ## Installation
 ```bash
@@ -38,58 +38,109 @@ The `AutoTranslate` extension adds two fields to each locale:
 
 ### 2. Choose and configure a translation backend
 
-Two backends are available: **ChatGPT** (default) and **DeepL**.
+Several backends are available: **LLM** (default, supports OpenAI, Mistral, Requesty, etc.), **DeepL**, and legacy **ChatGPT**.
 
 Set the active backend in your config or via environment variable:
 
 ```yml
 S2Hub\AutoTranslate\Translator\TranslatableFactory:
-  backend: DeepL  # or ChatGPT (default)
+  backend: LLM  # or DeepL, ChatGPT (legacy)
 ```
 
 The environment variable `FLUENT_TRANS_BACKEND` takes precedence over the config value:
 
 ```
-FLUENT_TRANS_BACKEND=DeepL
+FLUENT_TRANS_BACKEND=LLM
 ```
 
 ---
 
-## ChatGPT
+## LLM Translator (OpenAI-compatible APIs)
 
-### API Key
-
-```
-CHATGPT_API_KEY=your-api-key
-```
+The LLM translator supports **any OpenAI-compatible API endpoint**, including:
+- OpenAI (ChatGPT)
+- Mistral
+- Requesty
+- Groq
+- Local LLM servers (e.g., Ollama with OpenAI-compatible endpoints)
 
 ### Configuration
 
+The LLM translator uses **profiles** to configure different providers. Each profile defines the API endpoint, model, and authentication.
+
+#### Profile Configuration (profiles.yml)
+
 ```yml
-S2Hub\AutoTranslate\Translator\ChatGPTTranslator:
-  gpt_model: gpt-4o-mini
-  # %s will be replaced with the target locale name
+S2Hub\AutoTranslate\Translator\LLMTranslator:
+  default_profile: 'openai'
+  profiles:
+    openai:
+      base_uri: 'https://api.openai.com/v1'
+      model: 'gpt-4o-mini'
+      api_key_env: 'CHATGPT_API_KEY'
+      headers: []
+    mistral:
+      base_uri: 'https://api.mistral.ai/v1'
+      model: 'mistral-large-latest'
+      api_key_env: 'MISTRAL_API_KEY'
+      headers: []
+    requesty:
+      base_uri: 'https://router.requesty.ai/v1'
+      model: 'google/gemini-2.5-flash'
+      api_key_env: 'REQUESTY_API_KEY'
+      headers:
+        X-Requesty-Customer: 'your-customer-id'
+        X-Requesty-Project: 'your-project-id'
+```
+
+#### Environment Variables
+
+Set the API keys for each profile:
+
+```
+CHATGPT_API_KEY=your-openai-api-key
+MISTRAL_API_KEY=your-mistral-api-key
+REQUESTY_API_KEY=your-requesty-api-key
+```
+
+### Customising the prompt
+
+You can customize the translation prompt:
+
+```yml
+S2Hub\AutoTranslate\Translator\LLMTranslator:
   gpt_command: 'You are a professional translator. Translate the following text to %s language. Please keep the json format intact.'
 ```
 
-### Customising the prompt dynamically
-
-Add an extension to `ChatGPTTranslator` and implement `updateGptCommand`:
+Or extend the translator to customize dynamically:
 
 ```php
-public function updateGptCommand(&$command, $locale)
+use SilverStripe\Core\Extension;
+
+class CustomLLMTranslatorExtension extends Extension
 {
-    $command = 'Translate the following JSON to ' . $locale . '. Preserve the JSON structure.';
+    public function updateGptCommand(&$command, $locale)
+    {
+        $command = 'Translate the following JSON to ' . $locale . '. Preserve the JSON structure.';
+    }
 }
 ```
 
-### Finding available GPT models
+Register the extension:
+
+```yml
+S2Hub\AutoTranslate\Translator\LLMTranslator:
+  extensions:
+    - CustomLLMTranslatorExtension
+```
+
+### Finding available models
 
 In `ssshell` you can list models available for your API key:
 
 ```php
-$gpt = new S2Hub\AutoTranslate\Translator\ChatGPTTranslator(Environment::getEnv('CHATGPT_API_KEY'));
-$gpt->getModels();
+$llm = new S2Hub\AutoTranslate\Translator\LLMTranslator();
+$llm->getModels();
 ```
 
 ---
@@ -217,6 +268,10 @@ SilverStripe\CMS\Model\SiteTree:
     - IsAutoTranslated
     - LastTranslation
 ```
+
+### LLM API configuration error
+
+Ensure your profile is correctly configured in `LLMTranslator` config and the corresponding environment variable is set.
 
 ### DeepL API character limit reached
 

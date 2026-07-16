@@ -1,0 +1,20 @@
+S2Hub\AutoTranslate\Translator\LLMTranslator:
+  default_profile: 'openai'
+  profiles:
+    openai:
+      base_uri: 'https://api.openai.com/v1'
+      model: 'gpt-4o-mini'
+      api_key_env: 'CHATGPT_API_KEY'
+      headers: []
+    mistral:
+      base_uri: 'https://api.mistral.ai/v1'
+      model: 'mistral-large-latest'
+      api_key_env: 'MISTRAL_API_KEY'
+      headers: []
+    requesty:
+      base_uri: 'https://router.requesty.ai/v1'
+      model: 'google/gemini-2.5-flash'
+      api_key_env: 'REQUESTY_API_KEY'
+      headers:
+        X-Requesty-Customer: ''
+        X-Requesty-Project: ''

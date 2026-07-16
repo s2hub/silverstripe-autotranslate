@@ -3,14 +3,15 @@
 namespace S2Hub\AutoTranslate\Translator;
 
 use OpenAI;
+use OpenAI\Client;
 use Exception;
 use RuntimeException;
-use OpenAI\Client;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
+use SilverStripe\Core\Environment;
 
-class ChatGPTTranslator implements Translatable
+class LLMTranslator implements Translatable
 {
     use Extensible;
     use Configurable;
@@ -20,7 +21,25 @@ class ChatGPTTranslator implements Translatable
     /**
      * @config
      */
+    private static string $default_profile = 'openai';
+
+    /**
+     * @config
+     * @deprecated Use profiles[openai][model] instead. Kept for backwards compatibility.
+     */
     private static string $gpt_model = 'gpt-4o-mini';
+
+    /**
+     * @config
+     */
+    private static array $profiles = [
+        'openai' => [
+            'base_uri' => 'https://api.openai.com/v1',
+            'model' => 'gpt-4o-mini',
+            'api_key_env' => 'CHATGPT_API_KEY',
+            'headers' => [],
+        ],
+    ];
 
     /**
      * @config
@@ -28,17 +47,37 @@ class ChatGPTTranslator implements Translatable
     private static string $gpt_command = 'You are a professional translator. Translate the following text to %s language. Please keep the json format intact.';
 
     private Client $client;
+    private string $profileName;
 
-    public function __construct(string|null $apiKey = null)
+    public function __construct(string|null $apiKey = null, string $profile = null)
     {
-        if ($apiKey === null) {
-            $apiKey = $this->getAPIKey("CHATGPT_API_KEY");
+        $this->profileName = $profile ?? self::config()->get('default_profile');
+        $profileConfig = self::config()->get('profiles')[$this->profileName] ?? null;
+
+        if (!$profileConfig) {
+            throw new RuntimeException("LLM Profile '{$this->profileName}' not configured");
         }
-        $this->client = OpenAI::client($apiKey);
+
+        $envKey = $profileConfig['api_key_env'];
+        $actualKey = $apiKey ?? Environment::getEnv($envKey);
+
+        if (!$actualKey) {
+            throw new RuntimeException("No API Key found for profile '{$this->profileName}' (environment variable: {$envKey})");
+        }
+
+        $config = [
+            'apiKey' => $actualKey,
+        ];
+
+        if (!empty($profileConfig['base_uri'])) {
+            $config['baseURI'] = $profileConfig['base_uri'];
+        }
+
+        $this->client = OpenAI::client($config);
     }
 
     /**
-     * Retrieves available models from the OpenAI API.
+     * Retrieves available models from the API.
      *
      * @return array
      * @throws RuntimeException
@@ -56,15 +95,25 @@ class ChatGPTTranslator implements Translatable
      * Translates the given text to the target language.
      *
      * @param string $text The text to translate.
+     * @param string $sourceLocale The source locale/language code.
      * @param string $targetLocale The target locale/language code.
      * @return string Translated text.
      * @throws RuntimeException
      */
     public function translate(string $text, string $sourceLocale, string $targetLocale): string
     {
+        $profileConfig = self::config()->get('profiles')[$this->profileName];
+        
+        // For backwards compatibility: if gpt_model is set, override the profile model for openai
+        if ($this->profileName === 'openai' && self::config()->get('gpt_model')) {
+            $model = self::config()->get('gpt_model');
+        } else {
+            $model = $profileConfig['model'] ?? 'gpt-4o-mini';
+        }
+
         try {
             $response = $this->client->chat()->create([
-                'model' => self::config()->get('gpt_model'),
+                'model' => $model,
                 'messages' => [
                     [
                         'role' => 'system',
@@ -97,10 +146,7 @@ class ChatGPTTranslator implements Translatable
     private function getGPTCommand(string $targetLocale): string
     {
         $command = self::config()->get('gpt_command');
-
-        // Allow other classes to extend the command logic
         $this->extend('updateGPTCommand', $command, $targetLocale);
-
         return sprintf($command, $targetLocale);
     }
 }
