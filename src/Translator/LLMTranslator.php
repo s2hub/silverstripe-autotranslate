@@ -49,7 +49,7 @@ class LLMTranslator implements Translatable
     private Client $client;
     private string $profileName;
 
-    public function __construct(string|null $apiKey = null, string $profile = null)
+    public function __construct(?string $apiKey = null, ?string $profile = null)
     {
         $this->profileName = $profile ?? self::config()->get('default_profile');
         $profileConfig = self::config()->get('profiles')[$this->profileName] ?? null;
@@ -65,15 +65,20 @@ class LLMTranslator implements Translatable
             throw new RuntimeException("No API Key found for profile '{$this->profileName}' (environment variable: {$envKey})");
         }
 
-        $config = [
-            'apiKey' => $actualKey,
-        ];
+        $client = OpenAI::factory()
+            ->withApiKey($actualKey);
 
         if (!empty($profileConfig['base_uri'])) {
-            $config['baseURI'] = $profileConfig['base_uri'];
+            $client->withBaseUri($profileConfig['base_uri']);
         }
 
-        $this->client = OpenAI::client($config);
+        if (!empty($profileConfig['headers'] && is_array($profileConfig['headers']))) {
+            foreach($profileConfig['headers'] as $name => $value) {
+                $client->withHttpHeader($name, $value);
+            }
+        }
+
+        $this->client = $client->make();
     }
 
     /**
@@ -103,7 +108,7 @@ class LLMTranslator implements Translatable
     public function translate(string $text, string $sourceLocale, string $targetLocale): string
     {
         $profileConfig = self::config()->get('profiles')[$this->profileName];
-        
+
         // For backwards compatibility: if gpt_model is set, override the profile model for openai
         if ($this->profileName === 'openai' && self::config()->get('gpt_model')) {
             $model = self::config()->get('gpt_model');
