@@ -3,8 +3,11 @@
 namespace S2Hub\AutoTranslate\Helper;
 
 use InvalidArgumentException;
+use S2Hub\AutoTranslate\Extension\AutoTranslate;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Config;
+use SilverStripe\Core\Config\Config_ForClass;
+use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\DataObject;
 use TractorCow\Fluent\Extension\FluentExtension;
 use TractorCow\Fluent\Model\Locale;
@@ -16,6 +19,32 @@ class FluentHelper
     {
         return ClassInfo::classesWithExtension(FluentExtension::class, DataObject::class);
     }
+
+    /**
+     * Inject IsAutoTranslated and LastTranslation to translate config, if translate config is used.
+     * Quite a hack, as translate overrules all other settings in fluent
+     * @param string $className
+     * @return void
+     */
+    public static function fixAutoTranslateLocalisedFields(string $className)
+    {
+        /** @var Config_ForClass $classConfig */
+        $classConfig = Injector::inst()->get($className, true)::config();
+        $classExtensions = $classConfig->uninherited('extensions');
+        $hasAutoTranslate = is_array($classExtensions) && in_array(AutoTranslate::class, $classExtensions, true);
+        if (!$hasAutoTranslate) {
+            return;
+        }
+        $translatedValues = $classConfig->get('translate');
+        $hasTranslateSet = is_array($translatedValues);
+        if (!$hasTranslateSet) {
+            return;
+        }
+        $translatedValues[] = 'IsAutoTranslated';
+        $translatedValues[] = 'LastTranslation';
+        $classConfig->set('translate', $translatedValues);
+    }
+
 
     public static function getTranslatedFieldsForClass(string $className)
     {

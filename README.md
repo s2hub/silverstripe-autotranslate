@@ -24,17 +24,11 @@ My\Namespace\Model\Foo:
   extensions:
     fluent: TractorCow\Fluent\Extension\FluentExtension
     autotranslate: S2Hub\AutoTranslate\Extension\AutoTranslate
-  # if you have a manual `translate` config on this class, you must add these fields explicitly:
-  translate:
-    - IsAutoTranslated
-    - LastTranslation
 ```
 
 The `AutoTranslate` extension adds two fields to each locale:
 - `IsAutoTranslated` – flag that editors can toggle to mark a translation as manually reviewed
 - `LastTranslation` – timestamp of the last auto-translation
-
-⚠️ Some extensions from other modules define `translated` config on a class. If that applies to your class, you must add `IsAutoTranslated` and `LastTranslation` to the `translate` list manually (see Troubleshooting).
 
 ### 2. Choose and configure a translation backend
 
@@ -258,7 +252,7 @@ The modal processes items one by one and displays per-locale feedback (translate
 
 ### `[Emergency] Uncaught RuntimeException: My\Namespace\HomePage does not have IsAutoTranslated as translatable field`
 
-Your class defines a manual `translate` list. Add the required fields:
+Your class defines a manual `translate` list. Add the required fields if they're not added automatically:
 
 ```yml
 SilverStripe\CMS\Model\SiteTree:
