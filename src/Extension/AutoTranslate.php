@@ -348,7 +348,8 @@ class AutoTranslate extends Extension
             $translatedData = json_decode($translatedDataOrig, true);
 
             if (!$translatedData) {
-                $status->addLocale($locale->Locale, AITranslationStatus::STATUS_NOTHINGTOTRANSLATE);
+                $status->addLocale($locale->Locale, AITranslationStatus::STATUS_ERROR_DIDNOTTRANSLATE);
+                $status->setAiResponse($translatedDataOrig);
                 return $status;
             }
 
