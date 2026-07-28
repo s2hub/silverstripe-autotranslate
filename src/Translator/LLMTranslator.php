@@ -10,6 +10,7 @@ use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Environment;
+use TractorCow\Fluent\Model\Locale;
 
 class LLMTranslator implements Translatable
 {
@@ -152,6 +153,7 @@ class LLMTranslator implements Translatable
     {
         $command = self::config()->get('gpt_command');
         $this->extend('updateGPTCommand', $command, $targetLocale);
+        $targetLocale = Locale::getByLocale($targetLocale)->getLongTitle();
         return sprintf($command, $targetLocale);
     }
 }
