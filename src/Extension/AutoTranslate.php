@@ -11,6 +11,8 @@ use S2Hub\AutoTranslate\Translator\AITranslationStatus;
 use S2Hub\AutoTranslate\Translator\Translatable;
 use S2Hub\AutoTranslate\Translator\TranslatableFactory;
 use RuntimeException;
+use SilverStripe\Admin\SingleRecordAdmin;
+use SilverStripe\Control\Controller;
 use SilverStripe\Core\Extension;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\FieldList;
@@ -115,6 +117,10 @@ class AutoTranslate extends Extension
     {
         if (!$this->getOwner()->canTranslate()) {
             return;
+        }
+
+        if (Controller::curr() instanceof SingleRecordAdmin && !$this->getOwner()->hasMethod('getAllCMSActions')) {
+            return; //quick fix for https://github.com/s2hub/silverstripe-autotranslate/issues/6
         }
 
         $buttonTitle = _t(

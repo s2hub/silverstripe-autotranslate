@@ -271,6 +271,18 @@ Ensure your profile is correctly configured in `LLMTranslator` config and the co
 
 The task throws a `RuntimeException` when the DeepL character quota is exhausted. Check your usage in the DeepL account dashboard and upgrade your plan or wait for the quota reset.
 
+### When adding to SiteConfig, the save button is gone.
+
+Yes, SingleRecordAdmin doesn't add save and delete buttons once you have an extension adding `updateCMSActions()`. For this reason, we added another extension to bring back those buttons. Configure SiteConfig like:
+
+```yaml
+SilverStripe\SiteConfig\SiteConfig:
+  extensions:
+    fluent: TractorCow\Fluent\Extension\FluentExtension
+    autotranslate: S2Hub\AutoTranslate\Extension\AutoTranslate
+    cmsactions: S2Hub\AutoTranslate\Extension\SingleRecordAllCMSActions
+```
+
 ---
 
 ## Thanks to
