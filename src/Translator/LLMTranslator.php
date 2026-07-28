@@ -74,7 +74,7 @@ class LLMTranslator implements Translatable
         }
 
         if (!empty($profileConfig['headers'] && is_array($profileConfig['headers']))) {
-            foreach($profileConfig['headers'] as $name => $value) {
+            foreach ($profileConfig['headers'] as $name => $value) {
                 $client->withHttpHeader($name, $value);
             }
         }
