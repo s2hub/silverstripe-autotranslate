@@ -1,4 +1,8 @@
 S2Hub\AutoTranslate\Translator\TranslatableFactory:
   translators:
     DeepL: S2Hub\AutoTranslate\Translator\DeepLTranslator
-    ChatGPT: S2Hub\AutoTranslate\Translator\ChatGPTTranslator
+    # Legacy alias for backwards compatibility
+    ChatGPT: S2Hub\AutoTranslate\Translator\LLMTranslator
+    # Primary names for the new unified translator
+    LLM: S2Hub\AutoTranslate\Translator\LLMTranslator
+    OpenAI: S2Hub\AutoTranslate\Translator\LLMTranslator
