@@ -1,3 +1,6 @@
+---
+Name: llm-translator-profiles
+---
 S2Hub\AutoTranslate\Translator\LLMTranslator:
   default_profile: 'openai'
   profiles:

@@ -65,6 +65,12 @@ The LLM translator uses **profiles** to configure different providers. Each prof
 #### Profile Configuration (profiles.yml)
 
 ```yml
+---
+Name: autotranslateconfig
+After:
+    - '#fluentconfig'
+    - '#llm-translator-profiles'
+---
 S2Hub\AutoTranslate\Translator\LLMTranslator:
   default_profile: 'openai'
   profiles:
