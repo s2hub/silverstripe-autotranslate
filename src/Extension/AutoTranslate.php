@@ -3,6 +3,7 @@
 namespace S2Hub\AutoTranslate\Extension;
 
 use Exception;
+use Helper\DataHelper;
 use JsonException;
 use S2Hub\CmsPopup\Forms\CmsModalBatchAction;
 use S2Hub\AutoTranslate\Handler\AITranslateBatchHandler;
@@ -351,7 +352,8 @@ class AutoTranslate extends Extension
                 Locale::getDefault()->Locale,
                 $locale->Locale
             );
-            $translatedData = json_decode($translatedDataOrig, true);
+            $sanitisedData = DataHelper::extractJson($translatedDataOrig);
+            $translatedData = json_decode($sanitisedData, true);
 
             if (!$translatedData) {
                 $status->addLocale($locale->Locale, AITranslationStatus::STATUS_ERROR_DIDNOTTRANSLATE);
