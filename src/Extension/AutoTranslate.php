@@ -13,6 +13,7 @@ use S2Hub\AutoTranslate\Translator\Translatable;
 use S2Hub\AutoTranslate\Translator\TranslatableFactory;
 use RuntimeException;
 use SilverStripe\Admin\SingleRecordAdmin;
+use SilverStripe\CMS\Controllers\RootURLController;
 use SilverStripe\Control\Controller;
 use SilverStripe\Core\Extension;
 use SilverStripe\Forms\CheckboxField;
@@ -259,7 +260,23 @@ class AutoTranslate extends Extension
         }
 
         unset($fields['IsAutoTranslated']);
+
+        if ($this->isHomepageURLSegment($fields['URLSegment'] ?? null)) {
+            unset($fields['URLSegment']);
+        }
+
         return $fields;
+    }
+
+    /**
+     * The homepage is resolved by its URLSegment (see RootURLController::get_homepage_link()),
+     * so translating it would break the homepage in the target locale.
+     */
+    private function isHomepageURLSegment(mixed $urlSegment): bool
+    {
+        return is_string($urlSegment)
+            && class_exists(RootURLController::class)
+            && $urlSegment === RootURLController::get_homepage_link();
     }
 
     public function hasDefaultLocale(): bool
