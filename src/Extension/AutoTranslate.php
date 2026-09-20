@@ -3,6 +3,7 @@
 namespace S2Hub\AutoTranslate\Extension;
 
 use Exception;
+use Helper\DataHelper;
 use JsonException;
 use S2Hub\CmsPopup\Forms\CmsModalBatchAction;
 use S2Hub\AutoTranslate\Handler\AITranslateBatchHandler;
@@ -11,6 +12,8 @@ use S2Hub\AutoTranslate\Translator\AITranslationStatus;
 use S2Hub\AutoTranslate\Translator\Translatable;
 use S2Hub\AutoTranslate\Translator\TranslatableFactory;
 use RuntimeException;
+use SilverStripe\Admin\SingleRecordAdmin;
+use SilverStripe\Control\Controller;
 use SilverStripe\Core\Extension;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\FieldList;
@@ -44,6 +47,38 @@ class AutoTranslate extends Extension
 
     /** @internal not a config property */
     private static ?Translatable $translator = null;
+
+    /**
+     * Add IsAutoTranslated and LastTranslation to the translate config
+     * This ensures these fields are properly localised when the AutoTranslate extension is applied
+     *
+     * @param string $class Class name
+     * @param string $extension Extension class name
+     * @param array $args Extension arguments
+     * @return array Additional config to apply
+     */
+    public static function get_extra_config($class, $extension, $args)
+    {
+        // Only add translate config if the class already has translate config
+        $config = [];
+
+        // Check if translate config exists
+        if (class_exists($class) && $class !== DataObject::class) {
+            $existingConfig = \SilverStripe\Core\Config\Config::inst()->get($class, 'translate', \SilverStripe\Core\Config\Config::EXCLUDE_EXTRA_SOURCES);
+            if (is_array($existingConfig)) {
+                $translateFields = $existingConfig;
+                if (!in_array('IsAutoTranslated', $translateFields, true)) {
+                    $translateFields[] = 'IsAutoTranslated';
+                }
+                if (!in_array('LastTranslation', $translateFields, true)) {
+                    $translateFields[] = 'LastTranslation';
+                }
+                $config['translate'] = $translateFields;
+            }
+        }
+
+        return $config;
+    }
 
     public function canTranslate(): bool
     {
@@ -83,6 +118,10 @@ class AutoTranslate extends Extension
     {
         if (!$this->getOwner()->canTranslate()) {
             return;
+        }
+
+        if (Controller::curr() instanceof SingleRecordAdmin && !$this->getOwner()->hasMethod('getAllCMSActions')) {
+            return; //quick fix for https://github.com/s2hub/silverstripe-autotranslate/issues/6
         }
 
         $buttonTitle = _t(
@@ -313,10 +352,12 @@ class AutoTranslate extends Extension
                 Locale::getDefault()->Locale,
                 $locale->Locale
             );
-            $translatedData = json_decode($translatedDataOrig, true);
+            $sanitisedData = DataHelper::extractJson($translatedDataOrig);
+            $translatedData = json_decode($sanitisedData, true);
 
             if (!$translatedData) {
-                $status->addLocale($locale->Locale, AITranslationStatus::STATUS_NOTHINGTOTRANSLATE);
+                $status->addLocale($locale->Locale, AITranslationStatus::STATUS_ERROR_DIDNOTTRANSLATE);
+                $status->setAiResponse($translatedDataOrig);
                 return $status;
             }
 

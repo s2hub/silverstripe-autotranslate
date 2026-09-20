@@ -25,6 +25,8 @@ class AITranslationStatus extends ModelData
 
     public const ERRORMSG_NOTHINGFOUND = 'No translatable fields found';
 
+    public const STATUS_ERROR_DIDNOTTRANSLATE = 'Did not translate';
+
     private readonly DataObject $object;
 
     private array $locales_translated_to = [];
