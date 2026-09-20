@@ -20,6 +20,7 @@ class LocalisedDataObject extends DataObject implements TestOnly
     private static $db = [
         'Title' => 'Varchar',
         'Content' => 'HTMLText',
+        'URLSegment' => 'Varchar',
     ];
 
     /**
@@ -36,6 +37,7 @@ class LocalisedDataObject extends DataObject implements TestOnly
     private static $translate = [
         'Title',
         'Content',
+        'URLSegment',
         'IsAutoTranslated',
         'LastTranslation',
     ];

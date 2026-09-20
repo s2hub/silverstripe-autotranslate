@@ -234,4 +234,28 @@ class AutoTranslateTest extends SapphireTest
     {
         $this->markTestSkipped('to implement');
     }
+
+    public function testURLSegmentIsTranslated()
+    {
+        FluentState::singleton()->withState(function (FluentState $newState) {
+            $newState->setLocale('en_US');
+
+            $dataObject = $this->objFromFixture(LocalisedDataObject::class, 'record_a');
+            $fields = $dataObject->getTranslatableFields();
+            $this->assertArrayHasKey('URLSegment', $fields, 'URLSegment should be translated');
+        });
+    }
+
+    public function testHomepageURLSegmentIsNotTranslated()
+    {
+        FluentState::singleton()->withState(function (FluentState $newState) {
+            $newState->setLocale('en_US');
+
+            $homepage = $this->objFromFixture(LocalisedDataObject::class, 'homepage');
+            $homepage->write();
+            $fields = $homepage->getTranslatableFields();
+            $this->assertArrayNotHasKey('URLSegment', $fields, 'The homepage URLSegment must not be translated');
+            $this->assertArrayHasKey('Title', $fields, 'Other fields of the homepage should still be translated');
+        });
+    }
 }

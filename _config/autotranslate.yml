@@ -1,10 +1,6 @@
 ---
 name: silverstripe-autotranslate
 ---
-SilverStripe\CMS\Model\SiteTree:
-  translate_ignore:
-    - URLSegment
-
 SilverStripe\Control\Director:
   rules:
     'aitranslate': S2Hub\AutoTranslate\Control\AITranslateController

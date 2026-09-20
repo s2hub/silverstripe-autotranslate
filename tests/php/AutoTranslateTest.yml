@@ -14,6 +14,11 @@ S2Hub\AutoTranslate\Tests\Stub\LocalisedDataObject:
   record_a:
     Title: 'Magic of Silverstripe'
     Content: 'Vist Hamburg for the best Silverstripe community'
+    URLSegment: 'magic-of-silverstripe'
   record_b:
     Title: 'Make yourself roar!'
     Content: 'Visit us at Stripecon Ljubljana'
+  homepage:
+    Title: 'Home'
+    Content: 'Welcome'
+    URLSegment: 'home'

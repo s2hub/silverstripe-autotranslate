@@ -251,6 +251,15 @@ The modal processes items one by one and displays per-locale feedback (translate
 - A locale is skipped if its `LastTranslation` timestamp is newer than the source record's, meaning it was manually edited after the last auto-translation, unless `force_translation` is set.
 - `IsAutoTranslated` is set to `true` and `LastTranslation` is updated after each successful translation.
 - Publishing only works if the object uses `FluentVersionedExtension` instead of `FluentExtension`.
+- Page URL segments are translated as well, so pages get localised URLs. The homepage keeps its URL segment (`home`), because Silverstripe identifies the homepage by it. Changing the URL segment of an already translated page does not create a redirect from the old URL.
+
+To keep URL segments untranslated, exclude them in your project config:
+
+```yaml
+SilverStripe\CMS\Model\SiteTree:
+  translate_ignore:
+    - URLSegment
+```
 
 ---
 
