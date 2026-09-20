@@ -163,8 +163,7 @@ class DeepLTranslator implements Translatable
                 continue;
             }
 
-            if (
-                count($batchTexts) >= self::$max_texts_per_batch
+            if (count($batchTexts) >= self::$max_texts_per_batch
                 || $batchBytes + strlen($value) > self::$max_chunk_bytes
             ) {
                 $flush();
