@@ -18,6 +18,9 @@ S2Hub\AutoTranslate\Tests\Stub\LocalisedDataObject:
   record_b:
     Title: 'Make yourself roar!'
     Content: 'Visit us at Stripecon Ljubljana'
+  record_copy:
+    Title: 'Copied, not translated'
+    Content: 'Fluent copied this record into another locale'
   homepage:
     Title: 'Home'
     Content: 'Welcome'

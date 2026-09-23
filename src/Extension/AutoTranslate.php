@@ -169,6 +169,8 @@ class AutoTranslate extends Extension
             return $status->setStatus(AITranslationStatus::STATUS_ERROR)->setMessage(AITranslationStatus::ERRORMSG_NOTDEFAULTLOCALE);
         }
 
+        $this->localiseInDefaultLocale();
+
         $data = $this->getTranslatableFields();
 
         $translator = self::getTranslator();
@@ -246,11 +248,12 @@ class AutoTranslate extends Extension
 
     /**
      * get all fields that are translatable
+     * @param string|null $locale locale to read the values from; defaults to the record's locale
      * @return array
      */
-    public function getTranslatableFields(): array
+    public function getTranslatableFields(?string $locale = null): array
     {
-        $fields = FluentHelper::getLocalisedDataFromDataObject($this->getOwner(), $this->getOwner()->Locale);
+        $fields = FluentHelper::getLocalisedDataFromDataObject($this->getOwner(), $locale ?? $this->getOwner()->Locale);
         if (array_key_exists('ID', $fields)) {
             unset($fields['ID']);
         }
@@ -350,14 +353,18 @@ class AutoTranslate extends Extension
             return $status;
         }
 
+        $isUntranslatedCopy = $existsInLocale
+            && !$translatedObject->IsAutoTranslated
+            && $this->isUntranslatedCopy($locale->Locale, $data);
+
         //if translated do is newer than original, do not translate. It is already translated
-        if ($existsInLocale && $translatedObject->LastTranslation > $owner->LastTranslation && !$forceTranslation) {
+        if ($existsInLocale && !$isUntranslatedCopy && $translatedObject->LastTranslation > $owner->LastTranslation && !$forceTranslation) {
             $status->addLocale($locale->Locale, AITranslationStatus::STATUS_ALREADYTRANSLATED);
             return $status;
         }
 
         //if translated do is not set to auto translate, do not translate as it was edited manually
-        if ($existsInLocale && !$translatedObject->IsAutoTranslated) {
+        if ($existsInLocale && !$isUntranslatedCopy && !$translatedObject->IsAutoTranslated) {
             $status->addLocale($locale->Locale, AITranslationStatus::STATUS_NOTAUTOTRANSLATED);
             return $status;
         }
@@ -411,6 +418,92 @@ class AutoTranslate extends Extension
         }
 
         return $status;
+    }
+
+    /**
+     * Records that existed before Fluent was added to their class have no
+     * localisation in the default locale; their texts only live in the base
+     * table. Fluent writes every localised write to the base table as well, so
+     * the first translation would overwrite the source texts with the target
+     * language. And as long as the record is not published in the default
+     * locale, its translations are never published.
+     *
+     * Localise the record in the default locale before anything is written to
+     * the target locales: in draft from the draft values and, if the record is
+     * published, in live from the live values, so unpublished changes stay
+     * unpublished.
+     */
+    private function localiseInDefaultLocale(): void
+    {
+        $owner = $this->getOwner();
+        $locale = $owner->Locale;
+
+        FluentState::singleton()->withState(function (FluentState $state) use ($owner, $locale) {
+            $state->setLocale($locale);
+
+            if (!$owner->hasExtension(FluentVersionedExtension::class)) {
+                if (!$owner->existsInLocale($locale)) {
+                    $record = DataObject::get($owner->ClassName)->byID($owner->ID);
+                    $record->forceChange();
+                    $record->write();
+                }
+                return;
+            }
+
+            Versioned::withVersionedMode(function () use ($owner, $locale) {
+                $class = $owner->ClassName;
+                $isPublished = Versioned::get_by_stage($class, Versioned::LIVE)->byID($owner->ID) !== null;
+
+                // Load the draft values before anything is written.
+                $draft = null;
+                if (!$owner->isDraftedInLocale($locale)) {
+                    // Once the record has been written in another locale, the
+                    // draft base table holds that locale's texts. The live base
+                    // table is only touched by publishing and still holds the source.
+                    $draft = $isPublished && $this->isDraftedInOtherLocale($locale)
+                        ? Versioned::get_by_stage($class, Versioned::LIVE)->byID($owner->ID)
+                        : Versioned::get_by_stage($class, Versioned::DRAFT)->byID($owner->ID);
+                }
+
+                if ($isPublished && !$owner->isPublishedInLocale($locale)) {
+                    // Writing to live writes the draft localisation as well, so
+                    // the draft is written again afterwards to keep unpublished changes.
+                    $draft ??= Versioned::get_by_stage($class, Versioned::DRAFT)->byID($owner->ID);
+                    $live = Versioned::get_by_stage($class, Versioned::LIVE)->byID($owner->ID);
+                    $live->forceChange();
+                    $live->writeToStage(Versioned::LIVE);
+                }
+
+                if ($draft) {
+                    $draft->forceChange();
+                    $draft->writeToStage(Versioned::DRAFT);
+                }
+            });
+        });
+    }
+
+    private function isDraftedInOtherLocale(string $defaultLocale): bool
+    {
+        foreach (Locale::get()->exclude('Locale', $defaultLocale) as $locale) {
+            if ($this->getOwner()->isDraftedInLocale($locale->Locale)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * A localisation that still holds exactly the values of the default locale
+     * was not edited by anyone. Fluent creates such copies when a record is
+     * written or published in a locale it does not exist in yet, e.g. when
+     * userforms publishes its fields together with a translated form. The copy
+     * starts with IsAutoTranslated = false, so without this check it would be
+     * taken for a manual translation and never be translated.
+     */
+    private function isUntranslatedCopy(string $locale, array $defaultData): bool
+    {
+        return $this->getTranslatableFields($locale) === $defaultData;
     }
 
     public static function getTranslator(): Translatable

@@ -4,10 +4,12 @@ namespace S2Hub\AutoTranslate\Tests;
 
 use S2Hub\AutoTranslate\Extension\AutoTranslate;
 use S2Hub\AutoTranslate\Tests\Stub\LocalisedDataObject;
+use S2Hub\AutoTranslate\Tests\Stub\LocalisedVersionedDataObject;
 use S2Hub\AutoTranslate\Tests\Translator\MockTranslator;
 use S2Hub\AutoTranslate\Translator\AITranslationStatus;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\ORM\FieldType\DBDatetime;
+use SilverStripe\Versioned\Versioned;
 use TractorCow\Fluent\Model\Locale;
 use TractorCow\Fluent\State\FluentState;
 
@@ -17,6 +19,7 @@ class AutoTranslateTest extends SapphireTest
 
     protected static $extra_dataobjects = [
         LocalisedDataObject::class,
+        LocalisedVersionedDataObject::class,
     ];
 
     protected function setUp(): void
@@ -229,6 +232,156 @@ class AutoTranslateTest extends SapphireTest
         });
     }
 
+
+    public function testUntranslatedCopyIsTranslated()
+    {
+        FluentState::singleton()->withState(function (FluentState $newState) {
+            $newState->setLocale('en_US');
+            $record = $this->objFromFixture(LocalisedDataObject::class, 'record_copy');
+            $record->write();
+
+            // Localise the record in de_DE without changing any value, as Fluent
+            // does when a record is published in a locale it does not exist in yet.
+            $newState->setLocale('de_DE');
+            $copy = LocalisedDataObject::get()->byID($record->ID);
+            $copy->IsAutoTranslated = false;
+            $copy->write(false, false, true);
+            $this->assertTrue($copy->existsInLocale('de_DE'), 'Record should be localised in de_DE');
+
+            $newState->setLocale('en_US');
+            $status = $record->autoTranslate(false, false, ['de_DE']);
+            $this->assertEquals(AITranslationStatus::STATUS_TRANSLATED, $status->getLocalesTranslatedTo()['de_DE'], 'An untranslated copy should be translated');
+
+            $newState->setLocale('de_DE');
+            $translated = LocalisedDataObject::get()->byID($record->ID);
+            $this->assertEquals('Copied, not translated (translated to de_DE)', $translated->Title, 'Title should be translated to de_DE');
+            $this->assertTrue((bool)$translated->IsAutoTranslated, 'The translation should be marked as auto translated');
+        });
+    }
+
+    public function testSourceWithoutDefaultLocalisationKeepsItsTexts()
+    {
+        // Records that existed before Fluent was added only have the base table.
+        $record = FluentState::singleton()->withState(function (FluentState $state) {
+            $state->setLocale(null);
+            $record = LocalisedDataObject::create(['Title' => 'Written before Fluent']);
+            $record->write();
+            return $record;
+        });
+
+        FluentState::singleton()->withState(function (FluentState $state) use ($record) {
+            $state->setLocale('en_US');
+            $source = LocalisedDataObject::get()->byID($record->ID);
+            $this->assertFalse($source->existsInLocale('en_US'), 'Record should not be localised in en_US yet');
+
+            $source->autoTranslate(false, false, ['de_DE']);
+
+            $source = LocalisedDataObject::get()->byID($record->ID);
+            $this->assertTrue($source->existsInLocale('en_US'), 'Record should be localised in the default locale');
+            $this->assertEquals('Written before Fluent', $source->Title, 'The source text must not be overwritten by the translation');
+
+            $state->setLocale('de_DE');
+            $translated = LocalisedDataObject::get()->byID($record->ID);
+            $this->assertEquals('Written before Fluent (translated to de_DE)', $translated->Title, 'Title should be translated to de_DE');
+        });
+    }
+
+    public function testTranslationOfSourceWithoutDefaultLocalisationIsPublished()
+    {
+        $record = FluentState::singleton()->withState(function (FluentState $state) {
+            $state->setLocale(null);
+            $record = LocalisedVersionedDataObject::create(['Title' => 'Published before Fluent']);
+            $record->write();
+            $record->publishSingle();
+            return $record;
+        });
+
+        FluentState::singleton()->withState(function (FluentState $state) use ($record) {
+            $state->setLocale('en_US');
+            $source = LocalisedVersionedDataObject::get()->byID($record->ID);
+            $this->assertFalse($source->isPublishedInLocale('en_US'), 'Record should not be published in en_US yet');
+
+            $status = $source->autoTranslate(true, false, ['de_DE']);
+            $this->assertEquals(AITranslationStatus::STATUS_PUBLISHED, $status->getLocalesTranslatedTo()['de_DE'], 'The translation should be published');
+            $this->assertTrue($source->isPublishedInLocale('en_US'), 'Record should be published in the default locale');
+
+            $live = Versioned::get_by_stage(LocalisedVersionedDataObject::class, Versioned::LIVE)->byID($record->ID);
+            $this->assertEquals('Published before Fluent', $live->Title, 'The live source text must stay untouched');
+
+            $state->setLocale('de_DE');
+            $live = Versioned::get_by_stage(LocalisedVersionedDataObject::class, Versioned::LIVE)->byID($record->ID);
+            $this->assertEquals('Published before Fluent (translated to de_DE)', $live->Title, 'The translation should be live');
+        });
+    }
+
+    public function testOverwrittenDraftBaseTableIsRestoredFromLive()
+    {
+        Versioned::withVersionedMode(function () {
+            Versioned::set_stage(Versioned::DRAFT);
+
+            $record = FluentState::singleton()->withState(function (FluentState $state) {
+                $state->setLocale(null);
+                $record = LocalisedVersionedDataObject::create(['Title' => 'Published before Fluent']);
+                $record->write();
+                $record->publishSingle();
+                return $record;
+            });
+
+            // A write in another locale overwrites the draft base table as well.
+            FluentState::singleton()->withState(function (FluentState $state) use ($record) {
+                $state->setLocale('es_ES');
+                $translated = LocalisedVersionedDataObject::get()->byID($record->ID);
+                $translated->Title = 'Publicado antes de Fluent';
+                $translated->write();
+            });
+
+            FluentState::singleton()->withState(function (FluentState $state) use ($record) {
+                $state->setLocale('en_US');
+                $source = LocalisedVersionedDataObject::get()->byID($record->ID);
+                $this->assertEquals('Publicado antes de Fluent', $source->Title, 'The draft base table should hold the es_ES text');
+
+                $source->autoTranslate(false, false, ['de_DE']);
+
+                $source = LocalisedVersionedDataObject::get()->byID($record->ID);
+                $this->assertEquals('Published before Fluent', $source->Title, 'The source text should be restored from live');
+
+                $state->setLocale('de_DE');
+                $translated = LocalisedVersionedDataObject::get()->byID($record->ID);
+                $this->assertEquals('Published before Fluent (translated to de_DE)', $translated->Title, 'Title should be translated from the source text');
+            });
+        });
+    }
+
+    public function testUnpublishedDraftOfSourceIsKept()
+    {
+        Versioned::withVersionedMode(function () {
+            Versioned::set_stage(Versioned::DRAFT);
+
+            $record = FluentState::singleton()->withState(function (FluentState $state) {
+                $state->setLocale(null);
+                $record = LocalisedVersionedDataObject::create(['Title' => 'Published before Fluent']);
+                $record->write();
+                $record->publishSingle();
+                return $record;
+            });
+
+            FluentState::singleton()->withState(function (FluentState $state) use ($record) {
+                $state->setLocale('en_US');
+                $source = LocalisedVersionedDataObject::get()->byID($record->ID);
+                $source->Title = 'Unpublished change';
+                $source->write();
+                $this->assertFalse($source->isPublishedInLocale('en_US'), 'Record should not be published in en_US yet');
+
+                $source->autoTranslate(false, false, ['de_DE']);
+
+                $this->assertTrue($source->isPublishedInLocale('en_US'), 'Record should be published in the default locale');
+                $draft = LocalisedVersionedDataObject::get()->byID($record->ID);
+                $this->assertEquals('Unpublished change', $draft->Title, 'The unpublished change must be kept in draft');
+                $live = Versioned::get_by_stage(LocalisedVersionedDataObject::class, Versioned::LIVE)->byID($record->ID);
+                $this->assertEquals('Published before Fluent', $live->Title, 'The unpublished change must not go live');
+            });
+        });
+    }
 
     public function testDoPublishWorksOnVersionedObjects()
     {
