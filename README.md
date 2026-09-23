@@ -248,8 +248,10 @@ The modal processes items one by one and displays per-locale feedback (translate
 
 - Translation always reads from the **default locale**.
 - A record is skipped if `IsAutoTranslated = false` (manual edit detected), unless `force_translation` is set.
+- A localisation with `IsAutoTranslated = false` whose translatable fields still hold exactly the values of the default locale is translated anyway. Fluent creates such untranslated copies when a record is written or published in a locale it does not exist in yet (e.g. userforms publishes its fields whenever the form is published). A manual translation that is identical to the source text is therefore translated again and marked as auto translated.
 - A locale is skipped if its `LastTranslation` timestamp is newer than the source record's, meaning it was manually edited after the last auto-translation, unless `force_translation` is set.
 - `IsAutoTranslated` is set to `true` and `LastTranslation` is updated after each successful translation.
+- A record without a localisation in the default locale (e.g. because it existed before Fluent was added to its class) is localised in the default locale first, in draft and, if published, in live. Otherwise Fluent would overwrite the source texts in the base table with the first translation, and the translations would never be published. If the record already has localisations in other locales, the draft base table has been overwritten by them, so the draft is restored from the live version.
 - Publishing only works if the object uses `FluentVersionedExtension` instead of `FluentExtension`.
 - Page URL segments are translated as well, so pages get localised URLs. The homepage keeps its URL segment (`home`), because Silverstripe identifies the homepage by it. Changing the URL segment of an already translated page does not create a redirect from the old URL.
 
